@@ -51,19 +51,8 @@ pub fn run() -> Result<(), JsValue>
         background.draw(&context);
 
         for rock in rocks.iter_mut() {
+            rock.update();
             rock.draw(&context);
-
-            let x = &mut rock.position[0];
-            *x += 0.01 * (1. - rock.size[0]);
-            if *x > 1.0 {
-                *x = -1.0;
-            }
-
-            let y = &mut rock.position[1];
-            *y += 0.01 * (1. - rock.size[1] * 3.);
-            if *y > 1.0 {
-                *y = -1.0;
-            }
         }
         ship.draw(&context);
 
