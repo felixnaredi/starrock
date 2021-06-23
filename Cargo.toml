@@ -1,0 +1,31 @@
+[package]
+name = "starrock"
+version = "0.1.0"
+authors = ["felixnaredi <felixnaredi@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+derive_builder = "0.10.2"
+js-sys = "0.3.51"
+wasm-bindgen = "0.2.74"
+ndarray = "0.15.3"
+rand = "0.6.0"
+
+[dependencies.web-sys]
+version = "0.3.51"
+features = [
+    "Document",
+    "Element",
+    "HtmlCanvasElement",
+    "WebGlBuffer",
+    "WebGlRenderingContext",
+    "WebGlProgram",
+    "WebGlShader",
+    "WebGlUniformLocation",
+    "Window",
+]
