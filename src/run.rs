@@ -1,5 +1,7 @@
 use std::{
     cell::RefCell,
+    cell::RefMut,
+    f32::consts::PI,
     rc::Rc,
 };
 
@@ -16,7 +18,10 @@ use crate::{
         Rock,
         RockDescriptorBuilder,
     },
-    ship::Ship,
+    ship::{
+        Ship,
+        ShipDescriptorBuilder,
+    },
 };
 
 #[wasm_bindgen]
@@ -34,7 +39,36 @@ pub fn run() -> Result<(), JsValue>
     let context = init_context().unwrap();
 
     let background = Rc::new(RefCell::new(Background::new(&context)?));
-    let ship = Ship::new(&context)?;
+
+    let descriptor = ShipDescriptorBuilder::default()
+        .tail_x(-1. / 6.)
+        .wing_angle((23. / 36.) * PI)
+        .position([0.5, 0.5])
+        .size([0.075, 0.075])
+        .yaw(PI / 4.)
+        .build()
+        .unwrap();
+    let ship = Rc::new(RefCell::new(Ship::new(&context, &descriptor)?));
+
+    {
+        let ship = ship.clone();
+
+        let closure = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+            RefMut::map(ship.as_ref().borrow_mut(), |ship| {
+                match event.key().chars().next() {
+                    Some('a') => ship.increase_yaw(PI / 27.),
+                    Some('d') => ship.increase_yaw(-PI / 27.),
+                    _ => (),
+                };
+
+                ship
+            });
+        }) as Box<dyn FnMut(_)>);
+
+        dom::window()
+            .add_event_listener_with_callback("keydown", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+    }
 
     {
         let background = background.clone();
@@ -83,7 +117,7 @@ pub fn run() -> Result<(), JsValue>
             rock.update();
             rock.draw(&context);
         }
-        ship.draw(&context);
+        (*ship).borrow().draw(&context);
 
         request_animation_frame(f.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut()>));

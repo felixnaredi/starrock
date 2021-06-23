@@ -44,7 +44,8 @@ impl Background
             void main() {
                 vec4 sq = vertexPosition * vertexPosition;
 
-                float d = sqrt(sq.x + sq.y + sq.z);
+                float d0 = sqrt(sq.x + sq.y + sq.z);
+                float d = d0 * d0;
                 float r = (sin(d * PI * 4.8) + 1.0) / 2.0;
                 float b = (sin(d * PI * 1.8) + 1.0) / 2.0;
 

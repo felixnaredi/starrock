@@ -24,6 +24,7 @@ features = [
     "EventListener",
     "EventTarget",
     "HtmlCanvasElement",
+    "KeyboardEvent",
     "MouseEvent",
     "WebGlBuffer",
     "WebGlProgram",
