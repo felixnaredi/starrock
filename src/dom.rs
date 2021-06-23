@@ -2,11 +2,10 @@ use wasm_bindgen::{
     prelude::*,
     JsCast,
 };
-
 use web_sys::{
     Document,
-    Window,
     HtmlCanvasElement,
+    Window,
 };
 
 pub fn window() -> Window

@@ -7,9 +7,7 @@ use wasm_bindgen::{
     prelude::*,
     JsCast,
 };
-use web_sys::{
-    WebGlRenderingContext,
-};
+use web_sys::WebGlRenderingContext;
 
 use crate::{
     background::Background,

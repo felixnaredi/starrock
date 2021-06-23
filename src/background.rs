@@ -21,36 +21,36 @@ impl Background
         let vertex_shader = gl::compile_vertex_shader(
             &context,
             r#"
-        attribute vec4 position;
-        varying vec4 vertexPosition;
+            attribute vec4 position;
+            varying vec4 vertexPosition;
 
-        uniform mat4 world_matrix;
+            uniform mat4 world_matrix;
     
-        void main() {
-            gl_Position = position;
-            vertexPosition = world_matrix * position;
-        }
-        "#,
+            void main() {
+                gl_Position = position;
+                vertexPosition = world_matrix * position;
+            }
+            "#,
         )?;
 
         let fragment_shader = gl::compile_fragment_shader(
             &context,
             r#"
-        #define PI 3.14159265359
+            #define PI 3.14159265359
 
-        precision mediump float;
-        varying vec4 vertexPosition;
+            precision mediump float;
+            varying vec4 vertexPosition;
 
-        void main() {
-            vec4 sq = vertexPosition * vertexPosition;
+            void main() {
+                vec4 sq = vertexPosition * vertexPosition;
 
-            float d = sqrt(sq.x + sq.y + sq.z);
-            float r = (sin(d * PI * 4.8) + 1.0) / 2.0;
-            float b = (sin(d * PI * 1.8) + 1.0) / 2.0;
+                float d = sqrt(sq.x + sq.y + sq.z);
+                float r = (sin(d * PI * 4.8) + 1.0) / 2.0;
+                float b = (sin(d * PI * 1.8) + 1.0) / 2.0;
 
-            gl_FragColor = vec4(r, 0.3, b, 1.0);
-        }
-        "#,
+                gl_FragColor = vec4(r, 0.3, b, 1.0);
+            }
+            "#,
         )?;
 
         let program = gl::link_program(context, &vertex_shader, &fragment_shader)?;

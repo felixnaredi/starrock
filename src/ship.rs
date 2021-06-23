@@ -22,23 +22,23 @@ impl Ship
         let vertex_shader = gl::compile_vertex_shader(
             &context,
             r#"
-        attribute vec4 position;
+            attribute vec4 position;
 
-        uniform mat4 model_matrix;
+            uniform mat4 model_matrix;
     
-        void main() {
-            gl_Position = model_matrix * position;
-        }
-        "#,
+            void main() {
+              gl_Position = model_matrix * position;
+            }
+            "#,
         )?;
 
         let fragment_shader = gl::compile_fragment_shader(
             &context,
             r#"
-        void main() {
-            gl_FragColor = vec4(0.5, 0.2, 0.3, 1.0);
-        }
-        "#,
+            void main() {
+                gl_FragColor = vec4(0.5, 0.2, 0.3, 1.0);
+            }
+            "#,
         )?;
 
         let program = gl::link_program(&context, &vertex_shader, &fragment_shader)?;
