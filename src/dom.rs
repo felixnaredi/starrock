@@ -1,6 +1,12 @@
+use wasm_bindgen::{
+    prelude::*,
+    JsCast,
+};
+
 use web_sys::{
     Document,
     Window,
+    HtmlCanvasElement,
 };
 
 pub fn window() -> Window
@@ -11,4 +17,13 @@ pub fn window() -> Window
 pub fn document() -> Document
 {
     window().document().unwrap()
+}
+
+pub fn canvas() -> Result<HtmlCanvasElement, JsValue>
+{
+    let document = document();
+    Ok(document
+        .get_element_by_id("canvas")
+        .unwrap()
+        .dyn_into::<HtmlCanvasElement>()?)
 }

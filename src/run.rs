@@ -8,7 +8,6 @@ use wasm_bindgen::{
     JsCast,
 };
 use web_sys::{
-    HtmlCanvasElement,
     WebGlRenderingContext,
 };
 
@@ -43,7 +42,7 @@ pub fn run() -> Result<(), JsValue>
         let background = background.clone();
 
         let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
-            let canvas = canvas().unwrap();
+            let canvas = dom::canvas().unwrap();
 
             let width = canvas.client_width() as f32;
             let mut offset = event.client_x() as f32 - width / 2.;
@@ -58,7 +57,7 @@ pub fn run() -> Result<(), JsValue>
             background.as_ref().borrow_mut().position[1] = offset;
         }) as Box<dyn FnMut(_)>);
 
-        canvas()?
+        dom::canvas()?
             .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
         closure.forget();
     }
@@ -103,18 +102,9 @@ fn request_animation_frame(f: &Closure<dyn FnMut()>)
         .unwrap();
 }
 
-fn canvas() -> Result<HtmlCanvasElement, JsValue>
-{
-    let document = dom::document();
-    Ok(document
-        .get_element_by_id("canvas")
-        .unwrap()
-        .dyn_into::<HtmlCanvasElement>()?)
-}
-
 fn init_context() -> Result<WebGlRenderingContext, JsValue>
 {
-    let context = canvas()?
+    let context = dom::canvas()?
         .get_context("webgl")?
         .unwrap()
         .dyn_into::<WebGlRenderingContext>()?;
