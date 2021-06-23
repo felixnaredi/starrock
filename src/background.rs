@@ -1,3 +1,4 @@
+use ndarray::arr2;
 use web_sys::{
     WebGlBuffer,
     WebGlProgram,
@@ -8,6 +9,7 @@ use crate::gl;
 
 pub struct Background
 {
+    pub position: [f32; 2],
     program: WebGlProgram,
     vertex_buffer: WebGlBuffer,
 }
@@ -19,13 +21,14 @@ impl Background
         let vertex_shader = gl::compile_vertex_shader(
             &context,
             r#"
-
         attribute vec4 position;
         varying vec4 vertexPosition;
+
+        uniform mat4 world_matrix;
     
         void main() {
             gl_Position = position;
-            vertexPosition = position;
+            vertexPosition = world_matrix * position;
         }
         "#,
         )?;
@@ -75,6 +78,7 @@ impl Background
         }
 
         Ok(Background {
+            position: [0.0, 0.0],
             program,
             vertex_buffer,
         })
@@ -82,13 +86,28 @@ impl Background
 
     pub fn draw(&self, context: &WebGlRenderingContext)
     {
+        context.use_program(Some(&self.program));
+
         context.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
             Some(&self.vertex_buffer),
         );
         context.enable_vertex_attrib_array(0);
 
-        context.use_program(Some(&self.program));
+        let model_matrix_location = context.get_uniform_location(&self.program, "world_matrix");
+        let transpose = arr2(&[
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [self.position[0], self.position[1], 0.0, 1.0],
+        ]);
+
+        context.uniform_matrix4fv_with_f32_array(
+            model_matrix_location.as_ref(),
+            false,
+            transpose.view().as_slice().unwrap(),
+        );
+
         context.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
         context.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
 

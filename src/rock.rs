@@ -100,7 +100,7 @@ impl Rock
     pub fn update(&mut self)
     {
         let x = &mut self.position[0];
-        *x += 0.01 * (1. - self.size[0]);
+        *x += 0.005 * (1. - self.size[0]);
         if *x > 1.0 {
             *x = -1.0;
         }
@@ -110,7 +110,7 @@ impl Rock
 
         let dy = if self.sides % 2 == 0 { 1. } else { -1. };
         let y = &mut self.position[1];
-        *y += dy * 0.01 * (1. - self.size[1] * 3.);
+        *y += dy * 0.005 * (1. - self.size[1] * 3.);
         if *y > 1.0 {
             *y = -1.0;
         }

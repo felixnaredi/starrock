@@ -3,8 +3,10 @@ use std::{
     rc::Rc,
 };
 
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{
+    prelude::*,
+    JsCast,
+};
 use web_sys::{
     HtmlCanvasElement,
     WebGlRenderingContext,
@@ -20,6 +22,12 @@ use crate::{
     ship::Ship,
 };
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue>
 {
@@ -28,14 +36,38 @@ pub fn run() -> Result<(), JsValue>
 
     let context = init_context().unwrap();
 
-    let background = Background::new(&context)?;
+    let background = Rc::new(RefCell::new(Background::new(&context)?));
     let ship = Ship::new(&context)?;
 
-    let rocks: Result<Vec<_>, _> = (0..3)
+    {
+        let background = background.clone();
+
+        let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            let canvas = canvas().unwrap();
+
+            let width = canvas.client_width() as f32;
+            let mut offset = event.client_x() as f32 - width / 2.;
+            offset /= width;
+            offset *= -2.;
+            background.as_ref().borrow_mut().position[0] = offset;
+
+            let height = canvas.client_height() as f32;
+            let mut offset = event.client_y() as f32 - height / 2.;
+            offset /= height;
+            offset *= 2.;
+            background.as_ref().borrow_mut().position[1] = offset;
+        }) as Box<dyn FnMut(_)>);
+
+        canvas()?
+            .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+    }
+
+    let rocks: Result<Vec<_>, _> = (0..11)
         .map(|i| {
             let descriptor = RockDescriptorBuilder::default()
                 .sides(5 + i)
-                .size([0.05 + 0.1 * i as f32, 0.05 + 0.1 * i as f32])
+                .size([0.05 + 0.01 * i as f32, 0.05 + 0.01 * i as f32])
                 .position([-0.1 + 0.15 * (i * i) as f32, 0.1 + -0.15 * (i * i) as f32])
                 .build()
                 .expect("failed to create RockDescriptor");
@@ -48,7 +80,7 @@ pub fn run() -> Result<(), JsValue>
         context.clear_color(0.0, 1.0, 0.0, 1.0);
         context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
-        background.draw(&context);
+        (*background).borrow().draw(&context);
 
         for rock in rocks.iter_mut() {
             rock.update();
@@ -71,14 +103,18 @@ fn request_animation_frame(f: &Closure<dyn FnMut()>)
         .unwrap();
 }
 
-fn init_context() -> Result<WebGlRenderingContext, JsValue>
+fn canvas() -> Result<HtmlCanvasElement, JsValue>
 {
     let document = dom::document();
-    let canvas = document
+    Ok(document
         .get_element_by_id("canvas")
         .unwrap()
-        .dyn_into::<HtmlCanvasElement>()?;
-    let context = canvas
+        .dyn_into::<HtmlCanvasElement>()?)
+}
+
+fn init_context() -> Result<WebGlRenderingContext, JsValue>
+{
+    let context = canvas()?
         .get_context("webgl")?
         .unwrap()
         .dyn_into::<WebGlRenderingContext>()?;
