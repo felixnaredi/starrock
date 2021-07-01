@@ -1,10 +1,13 @@
 use std::{
-    cell::RefCell,
-    cell::RefMut,
+    cell::{
+        RefCell,
+        RefMut,
+    },
     f32::consts::PI,
     rc::Rc,
 };
 
+use rand::Rng;
 use wasm_bindgen::{
     prelude::*,
     JsCast,
@@ -67,6 +70,7 @@ pub fn run() -> Result<(), JsValue>
 
         dom::window()
             .add_event_listener_with_callback("keydown", closure.as_ref().unchecked_ref())?;
+
         closure.forget();
     }
 
@@ -91,17 +95,24 @@ pub fn run() -> Result<(), JsValue>
 
         dom::canvas()?
             .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
+
         closure.forget();
     }
 
+    let mut rng = rand::thread_rng();
+
     let rocks: Result<Vec<_>, _> = (0..11)
-        .map(|i| {
+        .map(|_| {
+            let size = 0.05 + rng.gen_range(0.0, 0.1);
+            let position = [rng.gen_range(-1., 1.), rng.gen_range(-1., 1.)];
+
             let descriptor = RockDescriptorBuilder::default()
-                .sides(5 + i)
-                .size([0.05 + 0.01 * i as f32, 0.05 + 0.01 * i as f32])
-                .position([-0.1 + 0.15 * (i * i) as f32, 0.1 + -0.15 * (i * i) as f32])
+                .sides(rng.gen_range(5, 11))
+                .size([size, size])
+                .position(position)
                 .build()
                 .expect("failed to create RockDescriptor");
+
             Rock::new(&context, &descriptor)
         })
         .collect();

@@ -24,11 +24,11 @@ impl Background
             attribute vec4 position;
             varying vec4 vertexPosition;
 
-            uniform mat4 world_matrix;
+            uniform mat4 model_matrix;
     
             void main() {
                 gl_Position = position;
-                vertexPosition = world_matrix * position;
+                vertexPosition = model_matrix * position;
             }
             "#,
         )?;
@@ -95,7 +95,7 @@ impl Background
         );
         context.enable_vertex_attrib_array(0);
 
-        let model_matrix_location = context.get_uniform_location(&self.program, "world_matrix");
+        let model_matrix_location = context.get_uniform_location(&self.program, "model_matrix");
         let transpose = arr2(&[
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
