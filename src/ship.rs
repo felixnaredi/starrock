@@ -110,6 +110,12 @@ impl Ship
         self.yaw += amount;
     }
 
+    pub fn move_forward(&mut self, amount: f32)
+    {
+        self.position[0] += amount * self.yaw.cos();
+        self.position[1] += amount * self.yaw.sin();
+    }
+
     pub fn draw(&self, context: &WebGlRenderingContext)
     {
         context.bind_buffer(
