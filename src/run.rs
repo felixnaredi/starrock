@@ -25,6 +25,10 @@ use crate::{
         Ship,
         ShipDescriptorBuilder,
     },
+    ship_renderer::{
+        ShipRenderer,
+        ShipRendererDescriptorBuilder,
+    },
 };
 
 #[wasm_bindgen]
@@ -37,6 +41,10 @@ extern "C" {
 pub fn run() -> Result<(), JsValue>
 {
     let context = init_context().unwrap();
+
+    // ---------------------------------------------------------------------------------------------
+    // Initialize background.
+    // ---------------------------------------------------------------------------------------------
 
     let background = Rc::new(RefCell::new(Background::new(&context)?));
     {
@@ -64,17 +72,18 @@ pub fn run() -> Result<(), JsValue>
         closure.forget();
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Initialize ship.
+    // ---------------------------------------------------------------------------------------------
+
     let ship = Rc::new(RefCell::new(Ship::new(
-        &context,
         &ShipDescriptorBuilder::default()
-            .tail_x(-1. / 6.)
-            .wing_angle((23. / 36.) * PI)
             .position([0.5, 0.5])
             .size([0.075, 0.075])
             .yaw(PI / 4.)
             .build()
             .unwrap(),
-    )?));
+    )));
     {
         let ship = Rc::clone(&ship);
 
@@ -97,6 +106,18 @@ pub fn run() -> Result<(), JsValue>
 
         closure.forget();
     }
+    let ship_renderer = ShipRenderer::new(
+        &context,
+        &ShipRendererDescriptorBuilder::default()
+            .tail_x(-1. / 6.)
+            .wing_angle(23. / 36. * PI)
+            .build()
+            .unwrap(),
+    )?;
+
+    // ---------------------------------------------------------------------------------------------
+    // Initialize rocks.
+    // ---------------------------------------------------------------------------------------------
 
     let mut rng = rand::thread_rng();
 
@@ -118,6 +139,10 @@ pub fn run() -> Result<(), JsValue>
         .collect();
     let mut rocks = rocks?;
 
+    // ---------------------------------------------------------------------------------------------
+    // Setup and start the run loop.
+    // ---------------------------------------------------------------------------------------------
+
     let run_loop = Rc::new(RefCell::new(None));
     let _run_loop = Rc::clone(&run_loop);
 
@@ -131,7 +156,7 @@ pub fn run() -> Result<(), JsValue>
             rock.update();
             rock.draw(&context);
         }
-        (*ship).borrow().draw(&context);
+        ship_renderer.render(&context, &ship.borrow());
 
         request_animation_frame(_run_loop.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut()>));
@@ -140,6 +165,10 @@ pub fn run() -> Result<(), JsValue>
 
     Ok(())
 }
+
+// -------------------------------------------------------------------------------------------------
+// Helper functions.
+// -------------------------------------------------------------------------------------------------
 
 fn request_animation_frame(f: &Closure<dyn FnMut()>)
 {

@@ -7,5 +7,6 @@ mod gl;
 mod rock;
 mod run;
 mod ship;
+mod ship_renderer;
 
 pub use run::run;
