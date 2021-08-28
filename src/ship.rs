@@ -12,13 +12,19 @@ pub struct ShipDescriptor
 pub struct Ship
 {
     #[getset(get = "pub")]
-    position: [f32; 2],
-
-    #[getset(get = "pub")]
     size: [f32; 2],
 
     #[getset(get = "pub")]
+    position: [f32; 2],
+
+    #[getset(get = "pub")]
+    velocity: [f32; 2],
+
+    #[getset(get = "pub")]
     yaw: f32,
+
+    #[getset(get = "pub")]
+    yaw_delta: f32,
 }
 
 impl Ship
@@ -28,18 +34,31 @@ impl Ship
         Ship {
             position: descriptor.position,
             size: descriptor.size,
+            velocity: [0., 0.],
             yaw: descriptor.yaw,
+            yaw_delta: 0.,
         }
     }
 
-    pub fn increase_yaw(&mut self, amount: f32)
+    pub fn accelerate_yaw_rotation(&mut self, amount: f32)
     {
-        self.yaw += amount;
+        self.yaw_delta += amount;
     }
 
-    pub fn move_forward(&mut self, amount: f32)
+    pub fn accelerate_forward(&mut self, amount: f32)
     {
-        self.position[0] += amount * self.yaw.cos();
-        self.position[1] += amount * self.yaw.sin();
+        self.velocity[0] += amount * self.yaw.cos();
+        self.velocity[1] += amount * self.yaw.sin();
+    }
+
+    pub fn update(&mut self)
+    {
+        self.position[0] += self.velocity[0];
+        self.position[1] += self.velocity[1];
+        self.yaw += self.yaw_delta;
+
+        self.velocity[0] *= 0.9;
+        self.velocity[1] *= 0.9;
+        self.yaw_delta *= 0.45;
     }
 }

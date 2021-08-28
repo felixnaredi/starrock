@@ -5,6 +5,7 @@ mod background;
 mod context;
 mod dom;
 mod gl;
+mod keyboard_event_bus;
 mod rock;
 mod rock_renderer;
 mod run;

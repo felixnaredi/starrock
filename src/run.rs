@@ -1,8 +1,5 @@
 use std::{
-    cell::{
-        RefCell,
-        RefMut,
-    },
+    cell::RefCell,
     f32::consts::PI,
     rc::Rc,
 };
@@ -21,6 +18,7 @@ use crate::{
     background::Background,
     context::Context,
     dom,
+    keyboard_event_bus::KeyboardEventBus,
     rock::{
         Rock,
         RockDescriptorBuilder,
@@ -90,28 +88,6 @@ pub fn run() -> Result<(), JsValue>
             .build()
             .unwrap(),
     )));
-    {
-        let ship = Rc::clone(&ship);
-
-        let closure = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
-            RefMut::map(ship.as_ref().borrow_mut(), |ship| {
-                match event.key().chars().next() {
-                    Some('a') => ship.increase_yaw(PI / 27.),
-                    Some('d') => ship.increase_yaw(-PI / 27.),
-                    Some('w') => ship.move_forward(0.02),
-                    Some('s') => ship.move_forward(-0.02),
-                    _ => (),
-                };
-
-                ship
-            });
-        }) as Box<dyn FnMut(_)>);
-
-        dom::window()
-            .add_event_listener_with_callback("keydown", closure.as_ref().unchecked_ref())?;
-
-        closure.forget();
-    }
     let ship_renderer = ShipRenderer::new(
         &context,
         &ShipRendererDescriptorBuilder::default()
@@ -175,10 +151,20 @@ pub fn run() -> Result<(), JsValue>
             ]
         });
 
+    let keyboard_event_bus = KeyboardEventBus::new()?;
     let run_loop = Rc::new(RefCell::new(None));
     let _run_loop = Rc::clone(&run_loop);
 
     *run_loop.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        for key in keyboard_event_bus.keys_held_down() {
+            match key {
+                'w' => ship.borrow_mut().accelerate_forward(0.0025),
+                'a' => ship.borrow_mut().accelerate_yaw_rotation(PI / 77.),
+                's' => ship.borrow_mut().accelerate_forward(-0.0025),
+                'd' => ship.borrow_mut().accelerate_yaw_rotation(-PI / 77.),
+                _ => (),
+            }
+        }
         let render_context = context.render_context().unwrap();
 
         render_context.clear_color(0.0, 1.0, 0.0, 1.0);
@@ -190,6 +176,8 @@ pub fn run() -> Result<(), JsValue>
             rock.update();
             rock_renderer.render(&context, &rock);
         }
+
+        ship.borrow_mut().update();
         ship_renderer.render(&context, &ship.borrow());
 
         request_animation_frame(_run_loop.borrow().as_ref().unwrap());
