@@ -13,6 +13,7 @@ use web_sys::{
 };
 
 use crate::{
+    context::Context,
     gl,
     rock::{
         Rock,
@@ -59,17 +60,26 @@ impl RockRenderer
         })
     }
 
-    pub fn render(&self, context: &WebGlRenderingContext, rock: &Rock)
+    pub fn render(&self, context: &Context, rock: &Rock)
     {
-        context.use_program(Some(&self.program));
+        let render_context = context.render_context().unwrap();
 
-        context.bind_buffer(
+        render_context.use_program(Some(&self.program));
+
+        render_context.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
             Some(&self.vertex_buffers[rock.shape()]),
         );
 
-        context.enable_vertex_attrib_array(0);
-        context.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
+        render_context.enable_vertex_attrib_array(0);
+        render_context.vertex_attrib_pointer_with_i32(
+            0,
+            3,
+            WebGlRenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
 
         let s = rock.size();
         let scale = arr2(&[
@@ -87,14 +97,28 @@ impl RockRenderer
             [p[0], p[1], 0.0, 1.0],
         ]);
 
-        let model_matrix_location = context.get_uniform_location(&self.program, "model_matrix");
-        context.uniform_matrix4fv_with_f32_array(
+        let model_matrix_location =
+            render_context.get_uniform_location(&self.program, "model_matrix");
+        render_context.uniform_matrix4fv_with_f32_array(
             model_matrix_location.as_ref(),
             false,
             (scale.dot(&transpose)).view().as_slice().unwrap(),
         );
 
-        context.draw_arrays(
+        let location = render_context.get_uniform_location(&self.program, "perspective_matrix");
+        let matrix = arr2(&context.perspective_matrix().unwrap_or([
+            [1., 0., 0., 0.],
+            [0., 1., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.],
+        ]));
+        render_context.uniform_matrix4fv_with_f32_array(
+            location.as_ref(),
+            false,
+            matrix.view().as_slice().unwrap(),
+        );
+
+        render_context.draw_arrays(
             WebGlRenderingContext::TRIANGLE_FAN,
             0,
             match rock.shape() {
@@ -105,7 +129,7 @@ impl RockRenderer
             },
         );
 
-        context.use_program(None);
+        render_context.use_program(None);
     }
 }
 
@@ -115,10 +139,12 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
         context,
         r#"
             attribute vec4 position;
+
             uniform mat4 model_matrix;
+            uniform mat4 perspective_matrix;
     
             void main() {
-                gl_Position = model_matrix * position;
+                gl_Position = perspective_matrix * model_matrix * position;
             }
             "#,
     )

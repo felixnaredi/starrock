@@ -7,6 +7,7 @@ use web_sys::{
 };
 
 use crate::{
+    context::Context,
     gl,
     ship::Ship,
 };
@@ -85,18 +86,28 @@ impl ShipRenderer
         })
     }
 
-    pub fn render(&self, context: &WebGlRenderingContext, ship: &Ship)
+    pub fn render(&self, context: &Context, ship: &Ship)
     {
-        context.bind_buffer(
+        let render_context = context.render_context().unwrap();
+
+        render_context.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
             Some(&self.vertex_buffer),
         );
-        context.enable_vertex_attrib_array(0);
+        render_context.enable_vertex_attrib_array(0);
 
-        context.use_program(Some(&self.program));
-        context.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
+        render_context.use_program(Some(&self.program));
+        render_context.vertex_attrib_pointer_with_i32(
+            0,
+            3,
+            WebGlRenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
 
-        let model_matrix_location = context.get_uniform_location(&self.program, "model_matrix");
+        let model_matrix_location =
+            render_context.get_uniform_location(&self.program, "model_matrix");
 
         let s = ship.size();
         let scale = arr2(&[
@@ -122,15 +133,28 @@ impl ShipRenderer
             [0., 0., 0., 1.],
         ]);
 
-        context.uniform_matrix4fv_with_f32_array(
+        render_context.uniform_matrix4fv_with_f32_array(
             model_matrix_location.as_ref(),
             false,
             (yaw.dot(&scale).dot(&transpose)).view().as_slice().unwrap(),
         );
 
-        context.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
+        let location = render_context.get_uniform_location(&self.program, "perspective_matrix");
+        let matrix = arr2(&context.perspective_matrix().unwrap_or([
+            [1., 0., 0., 0.],
+            [0., 1., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.],
+        ]));
+        render_context.uniform_matrix4fv_with_f32_array(
+            location.as_ref(),
+            false,
+            matrix.view().as_slice().unwrap(),
+        );
 
-        context.use_program(None);
+        render_context.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
+
+        render_context.use_program(None);
     }
 }
 
@@ -142,9 +166,10 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
     attribute vec4 position;
 
     uniform mat4 model_matrix;
+    uniform mat4 perspective_matrix;
 
     void main() {
-      gl_Position = model_matrix * position;
+      gl_Position = perspective_matrix * model_matrix * position;
     }
     "#,
     )

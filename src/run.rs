@@ -19,6 +19,7 @@ use web_sys::WebGlRenderingContext;
 
 use crate::{
     background::Background,
+    context::Context,
     dom,
     rock::{
         Rock,
@@ -83,7 +84,7 @@ pub fn run() -> Result<(), JsValue>
 
     let ship = Rc::new(RefCell::new(Ship::new(
         &ShipDescriptorBuilder::default()
-            .position([0.5, 0.5])
+            .position([0., 0.])
             .size([0.075, 0.075])
             .yaw(PI / 4.)
             .build()
@@ -159,14 +160,31 @@ pub fn run() -> Result<(), JsValue>
     // Setup and start the run loop.
     // ---------------------------------------------------------------------------------------------
 
+    let context = Context::new()
+        .with_render_context(context)
+        .with_perspective_matrix({
+            let canvas = dom::canvas().unwrap();
+            let w = canvas.client_width() as f32;
+            let h = canvas.client_height() as f32;
+            let r = w / h;
+            [
+                [1. / r, 0., 0., 0.],
+                [0., 1., 0., 0.],
+                [0., 0., 1., 0.],
+                [0., 0., 0., 1.],
+            ]
+        });
+
     let run_loop = Rc::new(RefCell::new(None));
     let _run_loop = Rc::clone(&run_loop);
 
     *run_loop.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-        context.clear_color(0.0, 1.0, 0.0, 1.0);
-        context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+        let render_context = context.render_context().unwrap();
 
-        (*background).borrow().draw(&context);
+        render_context.clear_color(0.0, 1.0, 0.0, 1.0);
+        render_context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+
+        (*background).borrow().render(&context);
 
         for rock in rocks.iter_mut() {
             rock.update();

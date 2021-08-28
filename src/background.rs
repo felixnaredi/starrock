@@ -5,7 +5,10 @@ use web_sys::{
     WebGlRenderingContext,
 };
 
-use crate::gl;
+use crate::{
+    context::Context,
+    gl,
+};
 
 pub struct Background
 {
@@ -22,13 +25,14 @@ impl Background
             &context,
             r#"
             attribute vec4 position;
-            varying vec4 vertexPosition;
 
             uniform mat4 model_matrix;
+            
+            varying vec4 vertex_position;            
     
             void main() {
+                vertex_position = model_matrix * position;
                 gl_Position = position;
-                vertexPosition = model_matrix * position;
             }
             "#,
         )?;
@@ -39,17 +43,20 @@ impl Background
             #define PI 3.14159265359
 
             precision mediump float;
-            varying vec4 vertexPosition;
+            
+            uniform mat4 perspective_matrix;
+
+            varying vec4 vertex_position;
 
             void main() {
-                vec4 sq = vertexPosition * vertexPosition;
+                vec4 v0 = vec4(vertex_position.y, vertex_position.x, 1.0, 1.0);
+                vec4 v1 = perspective_matrix * v0;
 
-                float d0 = sqrt(sq.x + sq.y + sq.z);
-                float d = d0 * d0;
-                float r = (sin(d * PI * 4.8) + 1.0) / 2.0;
-                float b = (sin(d * PI * 1.8) + 1.0) / 2.0;
+                vec4 d0 = v1 * v1;
+                float d1 = sqrt(d0.x + d0.y + d0.z);
+                float d2 = d1 * d1;
 
-                gl_FragColor = vec4(r, 0.3, b, 1.0);
+                gl_FragColor = vec4(sin(d2 * 17.0), 0.2, cos(d2 * 29.0), 1.0);
             }
             "#,
         )?;
@@ -85,17 +92,20 @@ impl Background
         })
     }
 
-    pub fn draw(&self, context: &WebGlRenderingContext)
+    pub fn render(&self, context: &Context)
     {
-        context.use_program(Some(&self.program));
+        let render_context = context.render_context().unwrap();
 
-        context.bind_buffer(
+        render_context.use_program(Some(&self.program));
+
+        render_context.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
             Some(&self.vertex_buffer),
         );
-        context.enable_vertex_attrib_array(0);
+        render_context.enable_vertex_attrib_array(0);
 
-        let model_matrix_location = context.get_uniform_location(&self.program, "model_matrix");
+        let model_matrix_location =
+            render_context.get_uniform_location(&self.program, "model_matrix");
         let transpose = arr2(&[
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
@@ -103,15 +113,35 @@ impl Background
             [self.position[0], self.position[1], 0.0, 1.0],
         ]);
 
-        context.uniform_matrix4fv_with_f32_array(
+        render_context.uniform_matrix4fv_with_f32_array(
             model_matrix_location.as_ref(),
             false,
             transpose.view().as_slice().unwrap(),
         );
 
-        context.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
-        context.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
+        let location = render_context.get_uniform_location(&self.program, "perspective_matrix");
+        let matrix = arr2(&context.perspective_matrix().unwrap_or([
+            [1., 0., 0., 0.],
+            [0., 1., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.],
+        ]));
+        render_context.uniform_matrix4fv_with_f32_array(
+            location.as_ref(),
+            false,
+            matrix.view().as_slice().unwrap(),
+        );
 
-        context.use_program(None);
+        render_context.vertex_attrib_pointer_with_i32(
+            0,
+            3,
+            WebGlRenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+        render_context.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
+
+        render_context.use_program(None);
     }
 }
