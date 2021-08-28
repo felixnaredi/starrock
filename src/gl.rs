@@ -1,4 +1,5 @@
 use web_sys::{
+    WebGlBuffer,
     WebGlProgram,
     WebGlRenderingContext,
     WebGlShader,
@@ -70,4 +71,25 @@ pub fn link_program(
             .get_program_info_log(&program)
             .unwrap_or(String::from("Unknown error creating program object")))
     }
+}
+
+pub fn make_static_draw_array_buffer_f32(
+    context: &WebGlRenderingContext,
+    data: Vec<f32>,
+) -> Result<WebGlBuffer, String>
+{
+    let buffer = context.create_buffer().ok_or("failed to create buffer")?;
+    context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
+
+    unsafe {
+        let vertex_array = js_sys::Float32Array::view(&data);
+
+        context.buffer_data_with_array_buffer_view(
+            WebGlRenderingContext::ARRAY_BUFFER,
+            &vertex_array,
+            WebGlRenderingContext::STATIC_DRAW,
+        );
+    };
+
+    Ok(buffer)
 }

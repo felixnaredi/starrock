@@ -5,6 +5,7 @@ mod background;
 mod dom;
 mod gl;
 mod rock;
+mod rock_renderer;
 mod run;
 mod ship;
 mod ship_renderer;

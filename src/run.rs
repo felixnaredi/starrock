@@ -7,7 +7,10 @@ use std::{
     rc::Rc,
 };
 
-use rand::Rng;
+use rand::{
+    seq::SliceRandom,
+    Rng,
+};
 use wasm_bindgen::{
     prelude::*,
     JsCast,
@@ -20,7 +23,9 @@ use crate::{
     rock::{
         Rock,
         RockDescriptorBuilder,
+        RockShape,
     },
+    rock_renderer::RockRenderer,
     ship::{
         Ship,
         ShipDescriptorBuilder,
@@ -121,23 +126,34 @@ pub fn run() -> Result<(), JsValue>
 
     let mut rng = rand::thread_rng();
 
-    let rocks: Result<Vec<_>, _> = (0..11)
+    let mut rocks: Vec<_> = (0..11)
         .map(|_| {
             let size = 0.05 + rng.gen_range(0.0, 0.1);
             let position = [rng.gen_range(-1., 1.), rng.gen_range(-1., 1.)];
+            let velocity = [rng.gen_range(-10e-3, 10e-3), rng.gen_range(-10e-3, 10e-3)];
+            let shape = [
+                RockShape::Pentagon,
+                RockShape::Hexagon,
+                RockShape::Septagon,
+                RockShape::Octagon,
+            ]
+            .choose(&mut rng)
+            .unwrap()
+            .clone();
 
             Rock::new(
-                &context,
                 &RockDescriptorBuilder::default()
-                    .sides(rng.gen_range(5, 11))
+                    .shape(shape)
                     .size([size, size])
                     .position(position)
+                    .velocity(velocity)
                     .build()
                     .unwrap(),
             )
         })
         .collect();
-    let mut rocks = rocks?;
+
+    let rock_renderer = RockRenderer::new(&context)?;
 
     // ---------------------------------------------------------------------------------------------
     // Setup and start the run loop.
@@ -154,7 +170,7 @@ pub fn run() -> Result<(), JsValue>
 
         for rock in rocks.iter_mut() {
             rock.update();
-            rock.draw(&context);
+            rock_renderer.render(&context, &rock);
         }
         ship_renderer.render(&context, &ship.borrow());
 
