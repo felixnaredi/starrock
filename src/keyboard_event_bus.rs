@@ -24,7 +24,7 @@ impl KeyboardEventBus
         let keys_held_down = Rc::new(RefCell::new(HashSet::new()));
 
         //
-        // Set on keydown closure. 
+        // Set on keydown closure.
         //
         let closure = Closure::wrap(Box::new({
             let keys_held_down = Rc::downgrade(&keys_held_down);
@@ -44,7 +44,7 @@ impl KeyboardEventBus
         closure.forget();
 
         //
-        // Set on keyup closure. 
+        // Set on keyup closure.
         //
         let closure = Closure::wrap(Box::new({
             let keys_held_down = Rc::downgrade(&keys_held_down);

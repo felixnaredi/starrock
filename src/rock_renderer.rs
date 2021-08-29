@@ -62,24 +62,17 @@ impl RockRenderer
 
     pub fn render(&self, context: &Context, rock: &Rock)
     {
-        let render_context = context.render_context().unwrap();
+        let gl = context.render_context().unwrap();
 
-        render_context.use_program(Some(&self.program));
+        gl.use_program(Some(&self.program));
 
-        render_context.bind_buffer(
+        gl.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
             Some(&self.vertex_buffers[rock.shape()]),
         );
 
-        render_context.enable_vertex_attrib_array(0);
-        render_context.vertex_attrib_pointer_with_i32(
-            0,
-            3,
-            WebGlRenderingContext::FLOAT,
-            false,
-            0,
-            0,
-        );
+        gl.enable_vertex_attrib_array(0);
+        gl.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
 
         let s = rock.size();
         let scale = arr2(&[
@@ -97,28 +90,27 @@ impl RockRenderer
             [p[0], p[1], 0.0, 1.0],
         ]);
 
-        let model_matrix_location =
-            render_context.get_uniform_location(&self.program, "model_matrix");
-        render_context.uniform_matrix4fv_with_f32_array(
+        let model_matrix_location = gl.get_uniform_location(&self.program, "model_matrix");
+        gl.uniform_matrix4fv_with_f32_array(
             model_matrix_location.as_ref(),
             false,
             (scale.dot(&transpose)).view().as_slice().unwrap(),
         );
 
-        let location = render_context.get_uniform_location(&self.program, "perspective_matrix");
+        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
         let matrix = arr2(&context.perspective_matrix().unwrap_or([
             [1., 0., 0., 0.],
             [0., 1., 0., 0.],
             [0., 0., 1., 0.],
             [0., 0., 0., 1.],
         ]));
-        render_context.uniform_matrix4fv_with_f32_array(
+        gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
             matrix.view().as_slice().unwrap(),
         );
 
-        render_context.draw_arrays(
+        gl.draw_arrays(
             WebGlRenderingContext::TRIANGLE_FAN,
             0,
             match rock.shape() {
@@ -129,7 +121,7 @@ impl RockRenderer
             },
         );
 
-        render_context.use_program(None);
+        gl.use_program(None);
     }
 }
 

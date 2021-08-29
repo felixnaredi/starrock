@@ -94,18 +94,17 @@ impl Background
 
     pub fn render(&self, context: &Context)
     {
-        let render_context = context.render_context().unwrap();
+        let gl = context.render_context().unwrap();
 
-        render_context.use_program(Some(&self.program));
+        gl.use_program(Some(&self.program));
 
-        render_context.bind_buffer(
+        gl.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
             Some(&self.vertex_buffer),
         );
-        render_context.enable_vertex_attrib_array(0);
+        gl.enable_vertex_attrib_array(0);
 
-        let model_matrix_location =
-            render_context.get_uniform_location(&self.program, "model_matrix");
+        let model_matrix_location = gl.get_uniform_location(&self.program, "model_matrix");
         let transpose = arr2(&[
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
@@ -113,35 +112,28 @@ impl Background
             [self.position[0], self.position[1], 0.0, 1.0],
         ]);
 
-        render_context.uniform_matrix4fv_with_f32_array(
+        gl.uniform_matrix4fv_with_f32_array(
             model_matrix_location.as_ref(),
             false,
             transpose.view().as_slice().unwrap(),
         );
 
-        let location = render_context.get_uniform_location(&self.program, "perspective_matrix");
+        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
         let matrix = arr2(&context.perspective_matrix().unwrap_or([
             [1., 0., 0., 0.],
             [0., 1., 0., 0.],
             [0., 0., 1., 0.],
             [0., 0., 0., 1.],
         ]));
-        render_context.uniform_matrix4fv_with_f32_array(
+        gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
             matrix.view().as_slice().unwrap(),
         );
 
-        render_context.vertex_attrib_pointer_with_i32(
-            0,
-            3,
-            WebGlRenderingContext::FLOAT,
-            false,
-            0,
-            0,
-        );
-        render_context.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
+        gl.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
+        gl.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
 
-        render_context.use_program(None);
+        gl.use_program(None);
     }
 }
