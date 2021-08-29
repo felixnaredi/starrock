@@ -52,7 +52,10 @@ impl Background
                 float d1 = sqrt(d0.x + d0.y + d0.z);
                 float d2 = d1 * d1;
                 
-                gl_FragColor = vec4(sin(d2 * 17.0), 0.2, cos(d2 * 29.0), 1.0);
+                gl_FragColor = vec4(abs(sin(d2 * 17.0)) * 0.7, 
+                                    0.2, 
+                                    abs(cos(d2 * 29.0)) * 0.7,
+                                    1.0);
             }
             "#,
         )?;
