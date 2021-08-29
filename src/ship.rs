@@ -1,5 +1,7 @@
 use getset::Getters;
 
+use crate::foreground;
+
 #[derive(Builder)]
 pub struct ShipDescriptor
 {
@@ -57,8 +59,10 @@ impl Ship
         self.position[1] += self.velocity[1];
         self.yaw += self.yaw_delta;
 
-        self.velocity[0] *= 0.9;
-        self.velocity[1] *= 0.9;
+        self.velocity[0] *= 0.91;
+        self.velocity[1] *= 0.91;
         self.yaw_delta *= 0.45;
+
+        foreground::position_modulo(&mut self.position);
     }
 }

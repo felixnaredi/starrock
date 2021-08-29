@@ -4,40 +4,42 @@ use getset::{
 };
 use web_sys::WebGlRenderingContext;
 
+#[derive(Builder)]
+pub struct ContextDescriptor
+{
+    canvas_width: u32,
+    canvas_height: u32,
+    render_context: WebGlRenderingContext,
+    foreground_perspective_matrix: [[f32; 4]; 4],
+}
+
 #[derive(Getters, Setters)]
 pub struct Context
 {
-    #[getset(set = "pub")]
-    render_context: Option<WebGlRenderingContext>,
+    #[getset(get = "pub")]
+    canvas_width: u32,
 
-    #[getset(get = "pub", set = "pub")]
-    perspective_matrix: Option<[[f32; 4]; 4]>,
+    #[getset(get = "pub")]
+    canvas_height: u32,
+
+    #[getset(get = "pub")]
+    render_context: WebGlRenderingContext,
+
+    #[getset(get = "pub")]
+    foreground_perspective_matrix: [[f32; 4]; 4],
+    // foreground_texture: WebGlTexture,
+    // foreground_texture_framebuffer: WebGlFramebuffer,
 }
 
 impl Context
 {
-    pub fn new() -> Context
+    pub fn new(descriptor: ContextDescriptor) -> Context
     {
         Context {
-            render_context: None,
-            perspective_matrix: None,
+            canvas_width: descriptor.canvas_width,
+            canvas_height: descriptor.canvas_height,
+            render_context: descriptor.render_context,
+            foreground_perspective_matrix: descriptor.foreground_perspective_matrix,
         }
-    }
-
-    pub fn render_context(&self) -> Option<&WebGlRenderingContext>
-    {
-        self.render_context.as_ref()
-    }
-
-    pub fn with_render_context(mut self, render_context: WebGlRenderingContext) -> Context
-    {
-        self.render_context = Some(render_context);
-        self
-    }
-
-    pub fn with_perspective_matrix(mut self, perspective_matrix: [[f32; 4]; 4]) -> Context
-    {
-        self.perspective_matrix = Some(perspective_matrix);
-        self
     }
 }

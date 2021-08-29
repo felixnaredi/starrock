@@ -16,7 +16,10 @@ use web_sys::WebGlRenderingContext;
 
 use crate::{
     background::Background,
-    context::Context,
+    context::{
+        Context,
+        ContextDescriptorBuilder,
+    },
     dom,
     keyboard_event_bus::KeyboardEventBus,
     rock::{
@@ -82,7 +85,7 @@ pub fn run() -> Result<(), JsValue>
 
     let ship = Rc::new(RefCell::new(Ship::new(
         &ShipDescriptorBuilder::default()
-            .position([0., 0.])
+            .position([2., 3. / 2.])
             .size([0.075, 0.075])
             .yaw(PI / 4.)
             .build()
@@ -106,7 +109,7 @@ pub fn run() -> Result<(), JsValue>
     let mut rocks: Vec<_> = (0..11)
         .map(|_| {
             let size = 0.05 + rng.gen_range(0.0, 0.1);
-            let position = [rng.gen_range(-1., 1.), rng.gen_range(-1., 1.)];
+            let position = [rng.gen_range(0., 4.), rng.gen_range(0., 3.)];
             let velocity = [rng.gen_range(-10e-3, 10e-3), rng.gen_range(-10e-3, 10e-3)];
             let shape = [
                 RockShape::Pentagon,
@@ -136,20 +139,20 @@ pub fn run() -> Result<(), JsValue>
     // Setup and start the run loop.
     // ---------------------------------------------------------------------------------------------
 
-    let context = Context::new()
-        .with_render_context(context)
-        .with_perspective_matrix({
-            let canvas = dom::canvas().unwrap();
-            let w = canvas.client_width() as f32;
-            let h = canvas.client_height() as f32;
-            let r = w / h;
-            [
-                [1. / r, 0., 0., 0.],
-                [0., 1., 0., 0.],
+    let context = Context::new(
+        ContextDescriptorBuilder::default()
+            .render_context(context)
+            .canvas_width(dom::canvas().unwrap().client_width() as u32)
+            .canvas_height(dom::canvas().unwrap().client_height() as u32)
+            .foreground_perspective_matrix([
+                [2. / 4., 0., 0., 0.],
+                [0., 2. / 3., 0., 0.],
                 [0., 0., 1., 0.],
-                [0., 0., 0., 1.],
-            ]
-        });
+                [-1., -1., 0., 1.],
+            ])
+            .build()
+            .map_err(|error| format!("{}", error))?,
+    );
 
     let keyboard_event_bus = KeyboardEventBus::new()?;
     let run_loop = Rc::new(RefCell::new(None));
@@ -165,10 +168,10 @@ pub fn run() -> Result<(), JsValue>
                 _ => (),
             }
         }
-        let render_context = context.render_context().unwrap();
+        let gl = context.render_context();
 
-        render_context.clear_color(0.0, 1.0, 0.0, 1.0);
-        render_context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+        gl.clear_color(0.0, 1.0, 0.0, 1.0);
+        gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
         (*background).borrow().render(&context);
 

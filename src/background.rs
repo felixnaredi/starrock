@@ -26,12 +26,13 @@ impl Background
             r#"
             attribute vec4 position;
 
-            uniform mat4 model_matrix;
+            uniform mat4 world_matrix;
+            uniform mat4 perspective_matrix;
             
             varying vec4 vertex_position;            
     
             void main() {
-                vertex_position = model_matrix * position;
+                vertex_position = perspective_matrix * world_matrix * position;
                 gl_Position = position;
             }
             "#,
@@ -42,20 +43,15 @@ impl Background
             r#"
             #define PI 3.14159265359
 
-            precision mediump float;
-            
-            uniform mat4 perspective_matrix;
+            precision mediump float;        
 
             varying vec4 vertex_position;
 
             void main() {
-                vec4 v0 = vec4(vertex_position.y, vertex_position.x, 1.0, 1.0);
-                vec4 v1 = perspective_matrix * v0;
-
-                vec4 d0 = v1 * v1;
+                vec4 d0 = vertex_position * vertex_position;
                 float d1 = sqrt(d0.x + d0.y + d0.z);
                 float d2 = d1 * d1;
-
+                
                 gl_FragColor = vec4(sin(d2 * 17.0), 0.2, cos(d2 * 29.0), 1.0);
             }
             "#,
@@ -94,7 +90,7 @@ impl Background
 
     pub fn render(&self, context: &Context)
     {
-        let gl = context.render_context().unwrap();
+        let gl = context.render_context();
 
         gl.use_program(Some(&self.program));
 
@@ -104,27 +100,28 @@ impl Background
         );
         gl.enable_vertex_attrib_array(0);
 
-        let model_matrix_location = gl.get_uniform_location(&self.program, "model_matrix");
-        let transpose = arr2(&[
+        let location = gl.get_uniform_location(&self.program, "world_matrix");
+        let matrix = arr2(&[
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
             [self.position[0], self.position[1], 0.0, 1.0],
         ]);
-
         gl.uniform_matrix4fv_with_f32_array(
-            model_matrix_location.as_ref(),
+            location.as_ref(),
             false,
-            transpose.view().as_slice().unwrap(),
+            matrix.view().as_slice().unwrap(),
         );
 
-        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
-        let matrix = arr2(&context.perspective_matrix().unwrap_or([
+        let w = context.canvas_width().clone() as f32;
+        let h = context.canvas_height().clone() as f32;
+        let matrix = arr2(&[
             [1., 0., 0., 0.],
-            [0., 1., 0., 0.],
+            [0., h / w, 0., 0.],
             [0., 0., 1., 0.],
             [0., 0., 0., 1.],
-        ]));
+        ]);
+        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,

@@ -88,7 +88,7 @@ impl ShipRenderer
 
     pub fn render(&self, context: &Context, ship: &Ship)
     {
-        let gl = context.render_context().unwrap();
+        let gl = context.render_context();
 
         gl.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
@@ -132,12 +132,7 @@ impl ShipRenderer
         );
 
         let location = gl.get_uniform_location(&self.program, "perspective_matrix");
-        let matrix = arr2(&context.perspective_matrix().unwrap_or([
-            [1., 0., 0., 0.],
-            [0., 1., 0., 0.],
-            [0., 0., 1., 0.],
-            [0., 0., 0., 1.],
-        ]));
+        let matrix = arr2(context.foreground_perspective_matrix());
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
