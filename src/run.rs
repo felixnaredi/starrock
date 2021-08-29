@@ -21,6 +21,7 @@ use crate::{
         ContextDescriptorBuilder,
     },
     dom,
+    foreground_renderer::ForegroundRenderer,
     keyboard_event_bus::KeyboardEventBus,
     rock::{
         Rock,
@@ -136,7 +137,7 @@ pub fn run() -> Result<(), JsValue>
     let rock_renderer = RockRenderer::new(&context)?;
 
     // ---------------------------------------------------------------------------------------------
-    // Setup and start the run loop.
+    // Create context.
     // ---------------------------------------------------------------------------------------------
 
     let context = Context::new(
@@ -153,6 +154,15 @@ pub fn run() -> Result<(), JsValue>
             .build()
             .map_err(|error| format!("{}", error))?,
     );
+
+    // ---------------------------------------------------------------------------------------------
+    // Foreground renderer.
+    // ---------------------------------------------------------------------------------------------
+    let foreground_renderer = ForegroundRenderer::new(&context)?;
+
+    // ---------------------------------------------------------------------------------------------
+    // Setup and start the run loop.
+    // ---------------------------------------------------------------------------------------------
 
     let keyboard_event_bus = KeyboardEventBus::new()?;
     let run_loop = Rc::new(RefCell::new(None));
@@ -173,7 +183,15 @@ pub fn run() -> Result<(), JsValue>
         gl.clear_color(0.0, 1.0, 0.0, 1.0);
         gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
+        gl.enable(WebGlRenderingContext::BLEND);
+        gl.blend_func(
+            WebGlRenderingContext::SRC_ALPHA,
+            WebGlRenderingContext::ONE_MINUS_SRC_ALPHA,
+        );
+
         (*background).borrow().render(&context);
+
+        foreground_renderer.render(&context);
 
         for rock in rocks.iter_mut() {
             rock.update();
