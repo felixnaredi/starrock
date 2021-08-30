@@ -3,6 +3,7 @@ use ndarray::arr2;
 use wasm_bindgen::JsValue;
 use web_sys::{
     WebGlBuffer,
+    WebGlFramebuffer,
     WebGlProgram,
     WebGlRenderingContext,
     WebGlShader,
@@ -19,6 +20,9 @@ pub struct ForegroundRenderer
 {
     #[getset(get = "pub")]
     texture: WebGlTexture,
+
+    #[getset(get = "pub")]
+    framebuffer: WebGlFramebuffer,
 
     program: WebGlProgram,
     vertex_buffer: WebGlBuffer,
@@ -96,8 +100,16 @@ impl ForegroundRenderer
             vec![1., 1., 0., -1., 1., 0., -1., -1., 0., 1., -1., 0.],
         )?;
 
+        //
+        // Create framebuffer.
+        //
+        let framebuffer = gl
+            .create_framebuffer()
+            .ok_or("failed to create framebuffer")?;
+
         Ok(ForegroundRenderer {
             texture,
+            framebuffer,
             program,
             vertex_buffer,
         })
@@ -173,36 +185,54 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
     gl::compile_fragment_shader(
         context,
         r#"
-        precision mediump float;        
+    precision mediump float;        
 
-        varying vec4 vertex_position;
+    varying vec4 vertex_position;
 
     void main() {
-        float x1 = 0.0;
-        float y1 = 0.0;
-
         float y0 = (vertex_position.y + 1.0) / 2.0;
-        if (y0 < 1.0 / 3.0) {
+        float x0 = (vertex_position.x + 1.0) / 2.0;
+
+        float alpha = 0.4;
+        if ((y0 < 1.0 / 5.0 || y0 > 4.0 / 5.0) || (x0 < 1.0 / 6.0 || x0 > 5.0 / 6.0)) {
+            alpha = 0.2;
+        }
+        if ((y0 < 1.0 / 5.0 || y0 > 4.0 / 5.0) && (x0 < 1.0 / 6.0 || x0 > 5.0 / 6.0)) {
+            alpha = 0.0;
+        }
+
+
+        float y1 = 0.0;
+        if (y0 < 1.0 / 5.0) {
             y1 = 0.5;
-        } else if (y0 < 2.0 / 3.0) {
+        } else if (y0 < 2.0 / 5.0) {
+            y1 = 0.0;
+        } else if (y0 < 3.0 / 5.0) {
+            y1 = 0.5;
+        } else if (y0 < 4.0 / 5.0) {
             y1 = 0.0;
         } else {
             y1 = 0.5;
         }
-
-        float x0 = (vertex_position.x + 1.0) / 2.0;
-        if (x0 < 1.0 / 4.0) {
+        
+        float x1 = 0.0;
+        if (x0 < 1.0 / 6.0) {
             x1 = 0.5;
-        } else if (x0 < 2.0 / 4.0) {
+        } else if (x0 < 2.0 / 6.0) {
             x1 = 0.0;
-        } else if (x0 < 3.0 / 4.0) {
+        } else if (x0 < 3.0 / 6.0) {
+            x1 = 0.5;
+        } else if (x0 < 4.0 / 6.0) {
+            x1 = 0.0;
+        } else if (x0 < 5.0 / 6.0) {
             x1 = 0.5;
         } else {
             x1 = 0.0;
         }
 
-        vec3 rgb = vec3(abs(x1 + y1 - 0.5) * 2.0);
-        gl_FragColor = vec4(rgb, 0.25);
+        float k = abs(x1 + y1 - 0.5) * 2.0;
+        vec3 rgb = vec3(0.7 * k + 0.5 * (1.0 - k));
+        gl_FragColor = vec4(rgb, alpha);
     }
     "#,
     )
