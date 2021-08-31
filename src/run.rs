@@ -87,7 +87,9 @@ pub fn run() -> Result<(), JsValue>
     let ship = Rc::new(RefCell::new(Ship::new(
         &ShipDescriptorBuilder::default()
             .position([2., 3. / 2.])
+            // .position([0., 0.])
             .size([0.075, 0.075])
+            // .yaw(0.)
             .yaw(PI / 4.)
             .build()
             .unwrap(),
@@ -189,17 +191,21 @@ pub fn run() -> Result<(), JsValue>
             WebGlRenderingContext::ONE_MINUS_SRC_ALPHA,
         );
 
-        (*background).borrow().render(&context);
+        (*background).borrow().render(&context);        
 
+        foreground_renderer.with_render_target_foreground_texture(&context, || {
+            gl.clear_color(0.0, 0.0, 0.0, 0.0);
+            gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+
+            for rock in rocks.iter_mut() {
+                rock.update();
+                rock_renderer.render(&context, &rock);
+            }
+    
+            ship.borrow_mut().update();
+            ship_renderer.render(&context, &ship.borrow());            
+        });
         foreground_renderer.render(&context);
-
-        for rock in rocks.iter_mut() {
-            rock.update();
-            rock_renderer.render(&context, &rock);
-        }
-
-        ship.borrow_mut().update();
-        ship_renderer.render(&context, &ship.borrow());
 
         request_animation_frame(_run_loop.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut()>));

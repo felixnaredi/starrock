@@ -69,14 +69,19 @@ impl ForegroundRenderer
             width,
             height,
             border,
-            type_,
             format,
+            type_,
             None,
         )?;
 
         gl.tex_parameteri(
             WebGlRenderingContext::TEXTURE_2D,
             WebGlRenderingContext::TEXTURE_MIN_FILTER,
+            WebGlRenderingContext::LINEAR as i32,
+        );
+        gl.tex_parameteri(
+            WebGlRenderingContext::TEXTURE_2D,
+            WebGlRenderingContext::TEXTURE_MAG_FILTER,
             WebGlRenderingContext::LINEAR as i32,
         );
         gl.tex_parameteri(
@@ -105,7 +110,7 @@ impl ForegroundRenderer
         //
         let framebuffer = gl
             .create_framebuffer()
-            .ok_or("failed to create framebuffer")?;
+            .ok_or("failed to create framebuffer")?;        
 
         Ok(ForegroundRenderer {
             texture,
@@ -113,6 +118,27 @@ impl ForegroundRenderer
             program,
             vertex_buffer,
         })
+    }
+
+    pub fn with_render_target_foreground_texture<F: FnOnce()>(&self, context: &Context, lambda: F)
+    {
+        let gl = context.render_context();
+
+        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&self.texture));
+        gl.bind_framebuffer(WebGlRenderingContext::FRAMEBUFFER, Some(&self.framebuffer));
+
+        gl.framebuffer_texture_2d(
+            WebGlRenderingContext::FRAMEBUFFER,
+            WebGlRenderingContext::COLOR_ATTACHMENT0,
+            WebGlRenderingContext::TEXTURE_2D,
+            Some(&self.texture),
+            0,
+        );        
+
+        lambda();
+
+        gl.bind_framebuffer(WebGlRenderingContext::FRAMEBUFFER, None);
+        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
     }
 
     pub fn render(&self, context: &Context)
@@ -155,6 +181,8 @@ impl ForegroundRenderer
             arr2(&matrix).view().as_slice().unwrap(),
         );
 
+        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&self.texture));
+
         gl.draw_arrays(WebGlRenderingContext::TRIANGLE_FAN, 0, 4);
 
         gl.use_program(None);
@@ -187,11 +215,13 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
         r#"
     precision mediump float;        
 
+    uniform sampler2D texture;
+
     varying vec4 vertex_position;
 
     void main() {
-        float y0 = (vertex_position.y + 1.0) / 2.0;
         float x0 = (vertex_position.x + 1.0) / 2.0;
+        float y0 = (vertex_position.y + 1.0) / 2.0;
 
         float alpha = 0.4;
         if ((y0 < 1.0 / 5.0 || y0 > 4.0 / 5.0) || (x0 < 1.0 / 6.0 || x0 > 5.0 / 6.0)) {
@@ -232,7 +262,28 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
 
         float k = abs(x1 + y1 - 0.5) * 2.0;
         vec3 rgb = vec3(0.7 * k + 0.5 * (1.0 - k));
-        gl_FragColor = vec4(rgb, alpha);
+
+        mat4 texcoord_matrix = mat4(
+            vec4(6.0 / 4.0, 0.0, 0.0, 0.0),
+            vec4(0.0, 5.0 / 4.0, 0.0, 0.0),
+            vec4(0.0, 0.0, 1.0, 0.0),
+            vec4(0.0, 0.0, 0.0, 1.0)
+            ) 
+        * mat4(
+            vec4(1.0, 0.0, 0.0, 0.0),
+            vec4(0.0, 1.0, 0.0, 0.0),
+            vec4(0.0, 0.0, 1.0, 0.0),
+            vec4(-1.0 / 6.0, -1.0 / 5.0, 0.0, 1.0)
+            );
+        vec4 texcoord = texcoord_matrix * vec4(x0, y0, 0.0, 1.0);
+        
+        vec4 pixel = texture2D(texture, texcoord.xy);
+        
+        if (pixel.a > 0.0) {
+            gl_FragColor = pixel;
+        } else {
+            gl_FragColor = vec4(rgb, alpha);
+        }
     }
     "#,
     )
