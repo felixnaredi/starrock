@@ -93,3 +93,24 @@ pub fn make_static_draw_array_buffer_f32(
 
     Ok(buffer)
 }
+
+pub fn make_static_draw_element_array_buffer_i16(
+    context: &WebGlRenderingContext,
+    data: Vec<u16>,
+) -> Result<WebGlBuffer, String>
+{
+    let buffer = context.create_buffer().ok_or("failed to create buffer")?;
+    context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER, Some(&buffer));
+
+    unsafe {
+        let vertex_array = js_sys::Uint16Array::view(&data);
+
+        context.buffer_data_with_array_buffer_view(
+            WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
+            &vertex_array,
+            WebGlRenderingContext::STATIC_DRAW,
+        );
+    };
+
+    Ok(buffer)
+}

@@ -28,6 +28,7 @@ pub struct ForegroundRenderer
 
     program: WebGlProgram,
     vertex_buffer: WebGlBuffer,
+    index_buffer: WebGlBuffer,
 }
 
 impl ForegroundRenderer
@@ -105,14 +106,48 @@ impl ForegroundRenderer
         let vertex_buffer = gl::make_static_draw_array_buffer_f32(
             gl,
             vec![
-                vertex([-1., -1., 0.], [0., 0.]),
-                vertex([5., -1., 0.], [1., 0.]),
-                vertex([5., 4., 0.], [1., 1.]),
-                vertex([-1., 4., 0.], [0., 1.]),
+                //
+                vertex([-1., -1., 0.], [0. / 6., 0. / 5.]),
+                vertex([5., -1., 0.], [6. / 6., 0. / 5.]),
+                vertex([5., 4., 0.], [6. / 6., 5. / 5.]),
+                vertex([-1., 4., 0.], [0. / 6., 5. / 5.]),
+                //
+                vertex([0., 0., 0.], [1. / 6., 1. / 5.]),
+                vertex([4., 0., 0.], [5. / 6., 1. / 5.]),
+                vertex([4., 3., 0.], [5. / 6., 4. / 5.]),
+                vertex([0., 3., 0.], [1. / 6., 4. / 5.]),
+                //
+                vertex([0., 0., 0.], [5. / 6., 1. / 5.]),
+                vertex([1., 0., 0.], [6. / 6., 1. / 5.]),
+                vertex([1., 3., 0.], [6. / 6., 4. / 5.]),
+                vertex([0., 3., 0.], [5. / 6., 4. / 5.]),
+                //
+                vertex([3., 0., 0.], [0. / 6., 1. / 5.]),
+                vertex([4., 0., 0.], [1. / 6., 1. / 5.]),
+                vertex([4., 3., 0.], [1. / 6., 4. / 5.]),
+                vertex([3., 3., 0.], [0. / 6., 4. / 5.]),
+                //
+                vertex([0., 0., 0.], [1. / 6., 4. / 5.]),
+                vertex([4., 0., 0.], [5. / 6., 4. / 5.]),
+                vertex([4., 1., 0.], [5. / 6., 5. / 5.]),
+                vertex([0., 1., 0.], [1. / 6., 5. / 5.]),
+                //
+                vertex([0., 3., 0.], [1. / 6., 1. / 5.]),
+                vertex([0., 2., 0.], [1. / 6., 0. / 5.]),
+                vertex([4., 2., 0.], [5. / 6., 0. / 5.]),
+                vertex([4., 3., 0.], [5. / 6., 1. / 5.]),
             ]
             .into_iter()
             .flatten()
             .collect(),
+        )?;
+
+        let index_buffer = gl::make_static_draw_element_array_buffer_i16(
+            gl,
+            vec![
+                0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15,
+                16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23,
+            ],
         )?;
 
         //
@@ -127,6 +162,7 @@ impl ForegroundRenderer
             framebuffer,
             program,
             vertex_buffer,
+            index_buffer,
         })
     }
 
@@ -134,9 +170,7 @@ impl ForegroundRenderer
     {
         let gl = context.render_context();
 
-        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&self.texture));
         gl.bind_framebuffer(WebGlRenderingContext::FRAMEBUFFER, Some(&self.framebuffer));
-
         gl.framebuffer_texture_2d(
             WebGlRenderingContext::FRAMEBUFFER,
             WebGlRenderingContext::COLOR_ATTACHMENT0,
@@ -158,7 +192,6 @@ impl ForegroundRenderer
         lambda();
 
         gl.bind_framebuffer(WebGlRenderingContext::FRAMEBUFFER, None);
-        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
         gl.viewport(0, 0, canvas_width as i32, canvas_height.clone() as i32);
     }
 
@@ -167,15 +200,6 @@ impl ForegroundRenderer
         let gl = context.render_context();
 
         gl.use_program(Some(&self.program));
-
-        gl.bind_buffer(
-            WebGlRenderingContext::ARRAY_BUFFER,
-            Some(&self.vertex_buffer),
-        );
-        gl.enable_vertex_attrib_array(0);
-        gl.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 20, 0);
-        gl.enable_vertex_attrib_array(1);
-        gl.vertex_attrib_pointer_with_i32(1, 2, WebGlRenderingContext::FLOAT, false, 20, 12);
 
         //
         // Perspective matrix.
@@ -219,10 +243,32 @@ impl ForegroundRenderer
         );
 
         //
+        // Setup buffers.
+        //
+        gl.bind_buffer(
+            WebGlRenderingContext::ARRAY_BUFFER,
+            Some(&self.vertex_buffer),
+        );
+        gl.enable_vertex_attrib_array(0);
+        gl.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 20, 0);
+        gl.enable_vertex_attrib_array(1);
+        gl.vertex_attrib_pointer_with_i32(1, 2, WebGlRenderingContext::FLOAT, false, 20, 12);
+
+        //
         // Draw.
         //
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&self.texture));
-        gl.draw_arrays(WebGlRenderingContext::TRIANGLE_FAN, 0, 4);
+        gl.bind_buffer(
+            WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
+            Some(&self.index_buffer),
+        );
+
+        gl.draw_elements_with_i32(
+            WebGlRenderingContext::TRIANGLES,
+            36,
+            WebGlRenderingContext::UNSIGNED_SHORT,
+            0,
+        );
 
         //
         // Cleanup.
@@ -268,54 +314,15 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
     varying vec2 _texcoord;
 
     void main() {
-        float x0 = (vertex_position.x + 1.0) / 2.0;
-        float y0 = (vertex_position.y + 1.0) / 2.0;
-
-        float alpha = 0.4;
-        if ((y0 < 1.0 / 5.0 || y0 > 4.0 / 5.0) || (x0 < 1.0 / 6.0 || x0 > 5.0 / 6.0)) {
-            alpha = 0.2;
-        }
-        if ((y0 < 1.0 / 5.0 || y0 > 4.0 / 5.0) && (x0 < 1.0 / 6.0 || x0 > 5.0 / 6.0)) {
-            alpha = 0.0;
-        }
-
-        float y1 = 0.0;
-        if (y0 < 1.0 / 5.0) {
-            y1 = 0.5;
-        } else if (y0 < 2.0 / 5.0) {
-            y1 = 0.0;
-        } else if (y0 < 3.0 / 5.0) {
-            y1 = 0.5;
-        } else if (y0 < 4.0 / 5.0) {
-            y1 = 0.0;
-        } else {
-            y1 = 0.5;
-        }
-        
-        float x1 = 0.0;
-        if (x0 < 1.0 / 6.0) {
-            x1 = 0.5;
-        } else if (x0 < 2.0 / 6.0) {
-            x1 = 0.0;
-        } else if (x0 < 3.0 / 6.0) {
-            x1 = 0.5;
-        } else if (x0 < 4.0 / 6.0) {
-            x1 = 0.0;
-        } else if (x0 < 5.0 / 6.0) {
-            x1 = 0.5;
-        } else {
-            x1 = 0.0;
-        }
-
-        float k = abs(x1 + y1 - 0.5) * 2.0;
-        vec3 rgb = vec3(0.7 * k + 0.5 * (1.0 - k));
-        
         vec4 pixel = texture2D(texture, _texcoord);
-        
-        if (pixel.a > 0.5) {
-            gl_FragColor = pixel;
+
+        if (pixel.a == 0.0 &&
+            (vertex_position.x > 0.0 || vertex_position.x < 4.0) &&
+            (vertex_position.y > 0.0 || vertex_position.y < 3.0)) {
+
+            gl_FragColor = pixel + vec4(0.0, 0.0, 1.0, 0.1);
         } else {
-            gl_FragColor = vec4(rgb, alpha);
+            gl_FragColor = pixel;
         }
     }
     "#,

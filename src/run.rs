@@ -88,7 +88,7 @@ pub fn run() -> Result<(), JsValue>
         &ShipDescriptorBuilder::default()
             // .position([2., 3. / 2.])
             .position([0., 0.])
-            .size([0.075, 0.075])
+            .size([0.175, 0.175])
             // .yaw(PI / 4.)
             .yaw(0.)
             .build()
