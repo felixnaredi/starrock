@@ -86,11 +86,11 @@ pub fn run() -> Result<(), JsValue>
 
     let ship = Rc::new(RefCell::new(Ship::new(
         &ShipDescriptorBuilder::default()
-            .position([2., 3. / 2.])
-            // .position([0., 0.])
+            // .position([2., 3. / 2.])
+            .position([0., 0.])
             .size([0.075, 0.075])
-            // .yaw(0.)
-            .yaw(PI / 4.)
+            // .yaw(PI / 4.)
+            .yaw(0.)
             .build()
             .unwrap(),
     )));
@@ -147,12 +147,18 @@ pub fn run() -> Result<(), JsValue>
             .render_context(context)
             .canvas_width(dom::canvas().unwrap().client_width() as u32)
             .canvas_height(dom::canvas().unwrap().client_height() as u32)
-            .foreground_perspective_matrix([
-                [2. / 4., 0., 0., 0.],
-                [0., 2. / 3., 0., 0.],
-                [0., 0., 1., 0.],
-                [-1., -1., 0., 1.],
-            ])
+            .foreground_perspective_matrix({
+                let r = 5.;
+                let l = -1.;
+                let t = 4.;
+                let b = -1.;
+                [
+                    [2. / (r - l), 0., 0., 0.],
+                    [0., 2. / (t - b), 0., 0.],
+                    [0., 0., 1., 0.],
+                    [-(r + l) / (r - l), -(t + b) / (t - b), 0., 1.],
+                ]
+            })
             .build()
             .map_err(|error| format!("{}", error))?,
     );
@@ -180,6 +186,16 @@ pub fn run() -> Result<(), JsValue>
                 _ => (),
             }
         }
+
+        //
+        // Update state.
+        //
+        rocks.iter_mut().for_each(Rock::update);
+        ship.borrow_mut().update();
+
+        //
+        // Render.
+        //
         let gl = context.render_context();
 
         gl.clear_color(0.0, 1.0, 0.0, 1.0);
@@ -191,19 +207,17 @@ pub fn run() -> Result<(), JsValue>
             WebGlRenderingContext::ONE_MINUS_SRC_ALPHA,
         );
 
-        (*background).borrow().render(&context);        
+        (*background).borrow().render(&context);
 
         foreground_renderer.with_render_target_foreground_texture(&context, || {
             gl.clear_color(0.0, 0.0, 0.0, 0.0);
             gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
-            for rock in rocks.iter_mut() {
-                rock.update();
-                rock_renderer.render(&context, &rock);
-            }
-    
-            ship.borrow_mut().update();
-            ship_renderer.render(&context, &ship.borrow());            
+            rocks
+                .iter_mut()
+                .for_each(|rock| rock_renderer.render(&context, rock));
+
+            ship_renderer.render(&context, &ship.borrow());
         });
         foreground_renderer.render(&context);
 
