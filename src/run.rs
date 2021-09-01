@@ -86,11 +86,12 @@ pub fn run() -> Result<(), JsValue>
 
     let ship = Rc::new(RefCell::new(Ship::new(
         &ShipDescriptorBuilder::default()
-            // .position([2., 3. / 2.])
-            .position([0., 0.])
-            .size([0.175, 0.175])
-            // .yaw(PI / 4.)
-            .yaw(0.)
+            .position([2., 3. / 2.])
+            //.position([0., 0.])
+            .size([0.075, 0.075])
+            // .size([0.275, 0.275])
+            .yaw(PI / 4.)
+            //.yaw(0.)
             .build()
             .unwrap(),
     )));
@@ -210,7 +211,13 @@ pub fn run() -> Result<(), JsValue>
         (*background).borrow().render(&context);
 
         foreground_renderer.with_render_target_foreground_texture(&context, || {
-            gl.clear_color(0.0, 0.0, 0.0, 0.0);
+            gl.clear_color(0., 0., 0., 0.);
+
+            // Uncomment to see better how the texture is rendered.
+            /*
+            gl.clear_color(0., 0., 1., 0.1);
+            */
+
             gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
             rocks

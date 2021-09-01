@@ -107,11 +107,6 @@ impl ForegroundRenderer
             gl,
             vec![
                 //
-                vertex([-1., -1., 0.], [0. / 6., 0. / 5.]),
-                vertex([5., -1., 0.], [6. / 6., 0. / 5.]),
-                vertex([5., 4., 0.], [6. / 6., 5. / 5.]),
-                vertex([-1., 4., 0.], [0. / 6., 5. / 5.]),
-                //
                 vertex([0., 0., 0.], [1. / 6., 1. / 5.]),
                 vertex([4., 0., 0.], [5. / 6., 1. / 5.]),
                 vertex([4., 3., 0.], [5. / 6., 4. / 5.]),
@@ -136,6 +131,26 @@ impl ForegroundRenderer
                 vertex([0., 2., 0.], [1. / 6., 0. / 5.]),
                 vertex([4., 2., 0.], [5. / 6., 0. / 5.]),
                 vertex([4., 3., 0.], [5. / 6., 1. / 5.]),
+                //
+                vertex([3., 2., 0.], [0. / 6., 0. / 5.]),
+                vertex([4., 2., 0.], [1. / 6., 0. / 5.]),
+                vertex([4., 3., 0.], [1. / 6., 1. / 5.]),
+                vertex([3., 3., 0.], [0. / 6., 1. / 5.]),
+                //
+                vertex([0., 2., 0.], [5. / 6., 0. / 5.]),
+                vertex([1., 2., 0.], [6. / 6., 0. / 5.]),
+                vertex([1., 3., 0.], [6. / 6., 1. / 5.]),
+                vertex([0., 3., 0.], [5. / 6., 1. / 5.]),
+                //
+                vertex([0., 0., 0.], [5. / 6., 4. / 5.]),
+                vertex([1., 0., 0.], [6. / 6., 4. / 5.]),
+                vertex([1., 1., 0.], [6. / 6., 5. / 5.]),
+                vertex([0., 1., 0.], [5. / 6., 5. / 5.]),
+                //
+                vertex([3., 0., 0.], [0. / 6., 4. / 5.]),
+                vertex([4., 0., 0.], [1. / 6., 4. / 5.]),
+                vertex([4., 1., 0.], [1. / 6., 5. / 5.]),
+                vertex([3., 1., 0.], [0. / 6., 5. / 5.]),
             ]
             .into_iter()
             .flatten()
@@ -146,7 +161,8 @@ impl ForegroundRenderer
             gl,
             vec![
                 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15,
-                16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23,
+                16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23, 24, 25, 26, 24, 26, 27, 28, 29, 30,
+                28, 30, 31, 32, 33, 34, 32, 34, 35,
             ],
         )?;
 
@@ -205,11 +221,16 @@ impl ForegroundRenderer
         // Perspective matrix.
         //
         let location = gl.get_uniform_location(&self.program, "perspective_matrix");
-        let matrix = context.foreground_perspective_matrix();
+        let matrix = [
+            [2. / 4., 0., 0., 0.],
+            [0., 2. / 3., 0., 0.],
+            [0., 0., 1., 0.],
+            [-1., -1., 0., 1.],
+        ];
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
-            arr2(matrix).view().as_slice().unwrap(),
+            arr2(&matrix).view().as_slice().unwrap(),
         );
 
         //
@@ -218,8 +239,8 @@ impl ForegroundRenderer
         let canvas_width = context.canvas_width().clone() as f32;
         let canvas_height = context.canvas_height().clone() as f32;
 
-        let matrix = if (6. / 5.) * canvas_height > canvas_width {
-            let (w, h) = (canvas_width * (5. / 6.), canvas_height);
+        let matrix = if (4. / 3.) * canvas_height > canvas_width {
+            let (w, h) = (canvas_width * (4. / 3.), canvas_height);
             [
                 [1., 0., 0., 0.],
                 [0., w / h, 0., 0.],
@@ -227,7 +248,7 @@ impl ForegroundRenderer
                 [0., 0., 0., 1.],
             ]
         } else {
-            let (w, h) = (canvas_width, canvas_height * (6. / 5.));
+            let (w, h) = (canvas_width, canvas_height * (4. / 3.));
             [
                 [h / w, 0., 0., 0.],
                 [0., 1., 0., 0.],
@@ -265,7 +286,7 @@ impl ForegroundRenderer
 
         gl.draw_elements_with_i32(
             WebGlRenderingContext::TRIANGLES,
-            36,
+            54,
             WebGlRenderingContext::UNSIGNED_SHORT,
             0,
         );
@@ -289,12 +310,12 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
     uniform mat4 perspective_matrix;
     uniform mat4 view_matrix;
 
-    varying vec4 vertex_position;
     varying vec2 _texcoord;
 
     void main() {
-      gl_Position = view_matrix * perspective_matrix * vec4(position, 1.0);
-      vertex_position = perspective_matrix * vec4(position, 1.0);
+      vec4 p0 = view_matrix * perspective_matrix * vec4(position, 1.0);
+
+      gl_Position = p0;
       _texcoord = texcoord;
     }
     "#,
@@ -310,20 +331,10 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
 
     uniform sampler2D texture;
 
-    varying vec4 vertex_position;
     varying vec2 _texcoord;
 
-    void main() {
-        vec4 pixel = texture2D(texture, _texcoord);
-
-        if (pixel.a == 0.0 &&
-            (vertex_position.x > 0.0 || vertex_position.x < 4.0) &&
-            (vertex_position.y > 0.0 || vertex_position.y < 3.0)) {
-
-            gl_FragColor = pixel + vec4(0.0, 0.0, 1.0, 0.1);
-        } else {
-            gl_FragColor = pixel;
-        }
+    void main() {        
+        gl_FragColor = texture2D(texture, _texcoord);        
     }
     "#,
     )
