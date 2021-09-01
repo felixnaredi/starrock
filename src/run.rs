@@ -214,7 +214,7 @@ pub fn run() -> Result<(), JsValue>
             gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
             rocks
-                .iter_mut()
+                .iter()
                 .for_each(|rock| rock_renderer.render(&context, rock));
 
             ship_renderer.render(&context, &ship.borrow());
