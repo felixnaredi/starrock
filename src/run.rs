@@ -98,7 +98,7 @@ pub fn run() -> Result<(), JsValue>
     let ship_renderer = ShipRenderer::new(
         &context,
         &ShipRendererDescriptorBuilder::default()
-            .tail_x(-1. / 6.)
+            .tail_x(-1. / 9.)
             .wing_angle(23. / 36. * PI)
             .build()
             .unwrap(),
@@ -182,7 +182,7 @@ pub fn run() -> Result<(), JsValue>
             match key {
                 'w' => ship.borrow_mut().accelerate_forward(0.0025),
                 'a' => ship.borrow_mut().accelerate_yaw_rotation(PI / 77.),
-                's' => ship.borrow_mut().accelerate_forward(-0.0025),
+                's' => ship.borrow_mut().accelerate_forward(-0.0015),
                 'd' => ship.borrow_mut().accelerate_yaw_rotation(-PI / 77.),
                 _ => (),
             }
