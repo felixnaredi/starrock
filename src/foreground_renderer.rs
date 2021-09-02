@@ -1,6 +1,5 @@
 use std::iter;
 
-use getset::Getters;
 use ndarray::arr2;
 use wasm_bindgen::JsValue;
 use web_sys::{
@@ -17,15 +16,11 @@ use crate::{
     gl,
 };
 
-#[derive(Getters)]
+/// Renders the foreground.
 pub struct ForegroundRenderer
 {
-    #[getset(get = "pub")]
     texture: WebGlTexture,
-
-    #[getset(get = "pub")]
     framebuffer: WebGlFramebuffer,
-
     program: WebGlProgram,
     vertex_buffer: WebGlBuffer,
     index_buffer: WebGlBuffer,
@@ -33,6 +28,7 @@ pub struct ForegroundRenderer
 
 impl ForegroundRenderer
 {
+    /// Creates a new `ForegroundRenderer`.
     pub fn new(context: &Context) -> Result<ForegroundRenderer, JsValue>
     {
         let gl = context.render_context();
@@ -45,23 +41,12 @@ impl ForegroundRenderer
         //
         // Create and setup texture.
         //
-
         let texture = gl.create_texture().ok_or("failed to create texture")?;
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&texture));
 
-        let canvas_width = context.canvas_width().clone() as f32;
-        let canvas_height = context.canvas_height().clone() as f32;
-
-        let (width, height) = if (6. / 5.) * canvas_height > canvas_width {
-            (canvas_width, canvas_width * (5. / 6.))
-        } else {
-            (canvas_height * (6. / 5.), canvas_height)
-        };
-
         let level = 0;
         let internal_format = WebGlRenderingContext::RGBA as i32;
-        let width = width.floor() as i32;
-        let height = height.floor() as i32;
+        let (width, height) = calculate_texture_size(context);
         let border = 0;
         let type_ = WebGlRenderingContext::UNSIGNED_BYTE;
         let format = WebGlRenderingContext::RGBA;
@@ -101,52 +86,52 @@ impl ForegroundRenderer
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
 
         //
-        // Create vertex buffer.
+        // Create vertex buffer and index buffer.
         //
         let vertex_buffer = gl::make_static_draw_array_buffer_f32(
             gl,
             vec![
-                //
+                //  0,  1,  2,  3,
                 vertex([0., 0., 0.], [1. / 6., 1. / 5.]),
                 vertex([4., 0., 0.], [5. / 6., 1. / 5.]),
                 vertex([4., 3., 0.], [5. / 6., 4. / 5.]),
                 vertex([0., 3., 0.], [1. / 6., 4. / 5.]),
-                //
+                //  4,  5,  6,  7,
                 vertex([0., 0., 0.], [5. / 6., 1. / 5.]),
                 vertex([1., 0., 0.], [6. / 6., 1. / 5.]),
                 vertex([1., 3., 0.], [6. / 6., 4. / 5.]),
                 vertex([0., 3., 0.], [5. / 6., 4. / 5.]),
-                //
+                //  8,  9, 10, 11,
                 vertex([3., 0., 0.], [0. / 6., 1. / 5.]),
                 vertex([4., 0., 0.], [1. / 6., 1. / 5.]),
                 vertex([4., 3., 0.], [1. / 6., 4. / 5.]),
                 vertex([3., 3., 0.], [0. / 6., 4. / 5.]),
-                //
+                // 12, 13, 14, 15,
                 vertex([0., 0., 0.], [1. / 6., 4. / 5.]),
                 vertex([4., 0., 0.], [5. / 6., 4. / 5.]),
                 vertex([4., 1., 0.], [5. / 6., 5. / 5.]),
                 vertex([0., 1., 0.], [1. / 6., 5. / 5.]),
-                //
-                vertex([0., 3., 0.], [1. / 6., 1. / 5.]),
+                // 16, 17, 18, 19,
                 vertex([0., 2., 0.], [1. / 6., 0. / 5.]),
                 vertex([4., 2., 0.], [5. / 6., 0. / 5.]),
                 vertex([4., 3., 0.], [5. / 6., 1. / 5.]),
-                //
+                vertex([0., 3., 0.], [1. / 6., 1. / 5.]),
+                // 20, 21, 22, 23,
                 vertex([3., 2., 0.], [0. / 6., 0. / 5.]),
                 vertex([4., 2., 0.], [1. / 6., 0. / 5.]),
                 vertex([4., 3., 0.], [1. / 6., 1. / 5.]),
                 vertex([3., 3., 0.], [0. / 6., 1. / 5.]),
-                //
+                // 24, 25, 26, 27,
                 vertex([0., 2., 0.], [5. / 6., 0. / 5.]),
                 vertex([1., 2., 0.], [6. / 6., 0. / 5.]),
                 vertex([1., 3., 0.], [6. / 6., 1. / 5.]),
                 vertex([0., 3., 0.], [5. / 6., 1. / 5.]),
-                //
+                // 28, 29, 30, 31,
                 vertex([0., 0., 0.], [5. / 6., 4. / 5.]),
                 vertex([1., 0., 0.], [6. / 6., 4. / 5.]),
                 vertex([1., 1., 0.], [6. / 6., 5. / 5.]),
                 vertex([0., 1., 0.], [5. / 6., 5. / 5.]),
-                //
+                // 32, 33, 34, 35,
                 vertex([3., 0., 0.], [0. / 6., 4. / 5.]),
                 vertex([4., 0., 0.], [1. / 6., 4. / 5.]),
                 vertex([4., 1., 0.], [1. / 6., 5. / 5.]),
@@ -182,6 +167,7 @@ impl ForegroundRenderer
         })
     }
 
+    /// Performs `lambda` with the foreground texture as render target.
     pub fn with_render_target_foreground_texture<F: FnOnce()>(&self, context: &Context, lambda: F)
     {
         let gl = context.render_context();
@@ -195,20 +181,28 @@ impl ForegroundRenderer
             0,
         );
 
-        let canvas_width = context.canvas_width().clone() as f32;
-        let canvas_height = context.canvas_height().clone() as f32;
-
-        let (width, height) = if (6. / 5.) * canvas_height > canvas_width {
-            (canvas_width, canvas_width * (5. / 6.))
-        } else {
-            (canvas_height * (6. / 5.), canvas_height)
-        };
+        let (width, height) = calculate_texture_size(context);
         gl.viewport(0, 0, width as i32, height as i32);
 
         lambda();
 
+        //
+        // Cleanup.
+        //
+
         gl.bind_framebuffer(WebGlRenderingContext::FRAMEBUFFER, None);
-        gl.viewport(0, 0, canvas_width as i32, canvas_height.clone() as i32);
+
+        // Restore viewport
+        //
+        // TODO:
+        //   The context could probably keep track of a stack of viewport sizes so that it would be possible to draw
+        //   into several textures.
+        gl.viewport(
+            0,
+            0,
+            context.canvas_width().clone() as i32,
+            context.canvas_height().clone() as i32,
+        );
     }
 
     pub fn render(&self, context: &Context)
@@ -264,7 +258,7 @@ impl ForegroundRenderer
         );
 
         //
-        // Setup buffers.
+        // Setup vertex buffer.
         //
         gl.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
@@ -274,6 +268,8 @@ impl ForegroundRenderer
         gl.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 20, 0);
         gl.enable_vertex_attrib_array(1);
         gl.vertex_attrib_pointer_with_i32(1, 2, WebGlRenderingContext::FLOAT, false, 20, 12);
+
+        gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, None);
 
         //
         // Draw.
@@ -294,6 +290,7 @@ impl ForegroundRenderer
         //
         // Cleanup.
         //
+        gl.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER, None);
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
         gl.use_program(None);
     }
@@ -312,7 +309,8 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
 
     varying vec2 _texcoord;
 
-    void main() {
+    void main()
+    {
       vec4 p0 = view_matrix * perspective_matrix * vec4(position, 1.0);
 
       gl_Position = p0;
@@ -327,17 +325,32 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
     gl::compile_fragment_shader(
         context,
         r#"
-    precision mediump float;        
+    precision mediump float;
 
     uniform sampler2D texture;
 
     varying vec2 _texcoord;
 
-    void main() {        
-        gl_FragColor = texture2D(texture, _texcoord);        
+    void main()
+    {
+        gl_FragColor = texture2D(texture, _texcoord);
     }
     "#,
     )
+}
+
+fn calculate_texture_size(context: &Context) -> (i32, i32)
+{
+    let canvas_width = context.canvas_width().clone() as f32;
+    let canvas_height = context.canvas_height().clone() as f32;
+
+    let (width, height) = if (6. / 5.) * canvas_height > canvas_width {
+        (canvas_width, canvas_width * 5. / 6.)
+    } else {
+        (canvas_height * 6. / 5., canvas_height)
+    };
+
+    (width.round() as i32, height.round() as i32)
 }
 
 fn vertex(position: [f32; 3], texcoord: [f32; 2]) -> impl Iterator<Item = f32>
