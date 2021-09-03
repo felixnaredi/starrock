@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use getset::{
     Getters,
     Setters,
@@ -18,6 +20,19 @@ pub enum RockShape
     Hexagon,
     Septagon,
     Octagon,
+}
+
+impl RockShape
+{
+    fn sides(&self) -> u32
+    {
+        match self {
+            RockShape::Pentagon => 5,
+            RockShape::Hexagon => 6,
+            RockShape::Septagon => 7,
+            RockShape::Octagon => 8,
+        }
+    }
 }
 
 #[derive(Builder)]
@@ -74,11 +89,19 @@ impl Rock
         foreground::position_modulo(&mut self.position);
     }
 
+    /// The hitbox of the `Rock`.
+    ///
+    /// The hitbox of a rock is a circle with its center at the same position as the rock and with the radius being the
+    /// greatest radius possible so that the hitbox is still fully inside the polygon of the rock.
     pub fn hitbox(&self) -> CircularHitbox
     {
-        // TODO:
-        //   The hitbox for a rock should have the greatest possitble radius that is not outside its polygon.
-        let radius = self.size[0].min(self.size[1]);
+        let sides = self.shape.sides() as f32;
+        let size = self.size[0].min(self.size[1]);
+        let rad = 2. * PI / sides;
+        let w = 0.5 * (1. + rad.cos()) * size;
+        let h = 0.5 * (0. + rad.sin()) * size;
+        let radius = (w.powi(2) + h.powi(2)).sqrt();
+
         CircularHitbox::new(self.position.clone(), radius)
     }
 }
