@@ -15,10 +15,8 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
-    rock::{
-        Rock,
-        RockShape,
-    },
+    rock::Rock,
+    rock_shape::RockShape,
 };
 
 /// Renderer that renders a `Rock` into a canvas.
@@ -38,21 +36,16 @@ impl RockRenderer
             &fragment_shader(context)?,
         )?;
 
-        let mut vertex_buffers = HashMap::new();
-        for (shape, n) in [
-            (RockShape::Pentagon, 5),
-            (RockShape::Hexagon, 6),
-            (RockShape::Septagon, 7),
-            (RockShape::Octagon, 8),
-        ]
-        .iter()
-        .cloned()
-        {
-            vertex_buffers.insert(
-                shape,
-                gl::make_static_draw_array_buffer_f32(context, polygon_vertices(n).unwrap())?,
-            );
-        }
+        let vertex_buffers: Result<_, String> = RockShape::iter()
+            .map(|shape| {
+                let buffer = gl::make_static_draw_array_buffer_f32(
+                    context,
+                    polygon_vertices(shape.sides()).unwrap(),
+                )?;
+                Ok((shape, buffer))
+            })
+            .collect();
+        let vertex_buffers = vertex_buffers?;
 
         Ok(RockRenderer {
             program,
@@ -108,12 +101,7 @@ impl RockRenderer
         gl.draw_arrays(
             WebGlRenderingContext::TRIANGLE_FAN,
             0,
-            match rock.shape() {
-                RockShape::Pentagon => 5 + 2,
-                RockShape::Hexagon => 6 + 2,
-                RockShape::Septagon => 7 + 2,
-                RockShape::Octagon => 8 + 2,
-            },
+            rock.shape().sides() as i32 + 2,
         );
 
         gl.use_program(None);

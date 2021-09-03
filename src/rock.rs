@@ -11,29 +11,8 @@ use crate::{
         Collision,
     },
     foreground,
+    rock_shape::RockShape,
 };
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum RockShape
-{
-    Pentagon,
-    Hexagon,
-    Septagon,
-    Octagon,
-}
-
-impl RockShape
-{
-    fn sides(&self) -> u32
-    {
-        match self {
-            RockShape::Pentagon => 5,
-            RockShape::Hexagon => 6,
-            RockShape::Septagon => 7,
-            RockShape::Octagon => 8,
-        }
-    }
-}
 
 #[derive(Builder)]
 pub struct RockDescriptor

@@ -11,6 +11,7 @@ mod gl;
 mod keyboard_event_bus;
 mod rock;
 mod rock_renderer;
+mod rock_shape;
 mod run;
 mod ship;
 mod ship_renderer;

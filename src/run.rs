@@ -5,10 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use rand::{
-    seq::SliceRandom,
-    Rng,
-};
+use rand::Rng;
 use wasm_bindgen::{
     prelude::*,
     JsCast,
@@ -28,7 +25,6 @@ use crate::{
     rock::{
         Rock,
         RockDescriptorBuilder,
-        RockShape,
     },
     rock_renderer::RockRenderer,
     ship::{
@@ -117,15 +113,7 @@ pub fn run() -> Result<(), JsValue>
             let size = 0.05 + rng.gen_range(0.0, 0.1);
             let position = [rng.gen_range(0., 4.), rng.gen_range(0., 3.)];
             let velocity = [rng.gen_range(-10e-3, 10e-3), rng.gen_range(-10e-3, 10e-3)];
-            let shape = [
-                RockShape::Pentagon,
-                RockShape::Hexagon,
-                RockShape::Septagon,
-                RockShape::Octagon,
-            ]
-            .choose(&mut rng)
-            .unwrap()
-            .clone();
+            let shape = rng.gen();
 
             Rock::new(
                 &RockDescriptorBuilder::default()
