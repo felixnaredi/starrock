@@ -4,6 +4,13 @@ use getset::{
     Getters,
     Setters,
 };
+use vecmath::{
+    vec2_add,
+    vec2_dot,
+    vec2_normalized_sub,
+    vec2_scale,
+    vec2_sub,
+};
 
 use crate::{
     collision::{
@@ -60,11 +67,16 @@ impl Rock
         // TODO:
         //   This is just a placeholder collision.
         self.collision.take().map(|collision| {
-            self.velocity[0] *= -1.;
-            self.velocity[1] *= -1.;
+            let other_position = collision.other_objects_position().clone();
+            let other_velocity = collision.other_objects_velocity().clone();
+
+            let direction = vec2_normalized_sub(other_position, self.position);
+            let a1 = vec2_scale(other_velocity, vec2_dot(direction, other_velocity));
+            let a2 = vec2_sub(other_velocity, a1);
+            let b1 = vec2_scale(self.velocity, vec2_dot(direction, other_velocity));
+            self.velocity = vec2_add(a2, b1);
         });
-        self.position[0] += self.velocity[0];
-        self.position[1] += self.velocity[1];
+        self.position = vec2_add(self.position, self.velocity);
         foreground::position_modulo(&mut self.position);
     }
 

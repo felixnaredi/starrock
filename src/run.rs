@@ -200,9 +200,12 @@ pub fn run() -> Result<(), JsValue>
 
         rock_collision_map.iter().for_each(|(i, js)| {
             js.iter().for_each(|j| {
-                let velocity = rocks[*j].velocity().clone();
+                let other = &rocks[*j];
+                let position = other.position().clone();
+                let velocity = other.velocity().clone();
+
                 let rock = &mut rocks[*i];
-                rock.set_collision(Some(Collision::new(velocity)));
+                rock.set_collision(Some(Collision::new(position, velocity)));
             });
         });
 
@@ -211,8 +214,10 @@ pub fn run() -> Result<(), JsValue>
         //
         rocks.iter().for_each(|rock| {
             if ship.borrow().hitbox().intersects(rock.hitbox()) {
-                ship.borrow_mut()
-                    .set_collision(Some(Collision::new([0., 0.])));
+                ship.borrow_mut().set_collision(Some(Collision::new(
+                    rock.position().clone(),
+                    rock.velocity().clone(),
+                )));
             }
         });
 

@@ -4,14 +4,20 @@ use getset::Getters;
 pub struct Collision
 {
     #[get = "pub"]
-    vector: [f32; 2],
+    other_objects_position: [f32; 2],
+
+    #[get = "pub"]
+    other_objects_velocity: [f32; 2],
 }
 
 impl Collision
 {
-    pub fn new(vector: [f32; 2]) -> Collision
+    pub fn new(other_objects_position: [f32; 2], other_objects_velocity: [f32; 2]) -> Collision
     {
-        Collision { vector }
+        Collision {
+            other_objects_position,
+            other_objects_velocity,
+        }
     }
 }
 
