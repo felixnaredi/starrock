@@ -234,7 +234,7 @@ impl ForegroundRenderer
         let canvas_height = context.canvas_height().clone() as f32;
 
         let matrix = if (4. / 3.) * canvas_height > canvas_width {
-            let (w, h) = (canvas_width * (4. / 3.), canvas_height);
+            let (w, h) = (canvas_width * (3. / 4.), canvas_height);
             [
                 [1., 0., 0., 0.],
                 [0., w / h, 0., 0.],
