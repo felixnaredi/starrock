@@ -1,6 +1,15 @@
-use getset::Getters;
+use getset::{
+    Getters,
+    Setters,
+};
 
-use crate::foreground;
+use crate::{
+    collision::{
+        CircularHitbox,
+        Collision,
+    },
+    foreground,
+};
 
 #[derive(Builder)]
 pub struct ShipDescriptor
@@ -10,7 +19,7 @@ pub struct ShipDescriptor
     yaw: f32,
 }
 
-#[derive(Getters)]
+#[derive(Getters, Setters)]
 pub struct Ship
 {
     #[getset(get = "pub")]
@@ -27,6 +36,9 @@ pub struct Ship
 
     #[getset(get = "pub")]
     yaw_delta: f32,
+
+    #[getset(get = "pub", set = "pub")]
+    collision: Option<Collision>,
 }
 
 impl Ship
@@ -39,6 +51,7 @@ impl Ship
             velocity: [0., 0.],
             yaw: descriptor.yaw,
             yaw_delta: 0.,
+            collision: None,
         }
     }
 
@@ -55,6 +68,13 @@ impl Ship
 
     pub fn update(&mut self)
     {
+        // TODO:
+        //   This is just a placeholder collision.
+        self.collision.take().map(|collision| {
+            self.position = [2., 1.5];
+            self.velocity = [0., 0.];
+        });
+
         self.position[0] += self.velocity[0];
         self.position[1] += self.velocity[1];
         self.yaw += self.yaw_delta;
@@ -64,5 +84,13 @@ impl Ship
         self.yaw_delta *= 0.45;
 
         foreground::position_modulo(&mut self.position);
+    }
+
+    pub fn hitbox(&self) -> CircularHitbox
+    {
+        // TODO:
+        //   Configure this hitbox to be more fitting.
+        let radius = self.size[0].min(self.size[1]);
+        CircularHitbox::new(self.position.clone(), radius)
     }
 }

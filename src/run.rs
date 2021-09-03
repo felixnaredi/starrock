@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    collections::HashMap,
     f32::consts::PI,
     rc::Rc,
 };
@@ -16,6 +17,7 @@ use web_sys::WebGlRenderingContext;
 
 use crate::{
     background::Background,
+    collision::Collision,
     context::{
         Context,
         ContextDescriptorBuilder,
@@ -187,6 +189,44 @@ pub fn run() -> Result<(), JsValue>
                 _ => (),
             }
         }
+
+        //
+        // Check rocks colliding with other rocks.
+        //
+        let rock_collision_map: HashMap<_, Vec<_>> = rocks
+            .iter()
+            .enumerate()
+            .map(|(i, rock)| {
+                (
+                    i,
+                    rocks
+                        .iter()
+                        .enumerate()
+                        .filter_map(move |(j, other)| {
+                            (i != j && rock.hitbox().intersects(other.hitbox())).then(|| j)
+                        })
+                        .collect(),
+                )
+            })
+            .collect();
+
+        rock_collision_map.iter().for_each(|(i, js)| {
+            js.iter().for_each(|j| {
+                let velocity = rocks[*j].velocity().clone();
+                let rock = &mut rocks[*i];
+                rock.set_collision(Some(Collision::new(velocity)));
+            });
+        });
+
+        //
+        // Check if ship has collided with rocks.
+        //
+        rocks.iter().for_each(|rock| {
+            if ship.borrow().hitbox().intersects(rock.hitbox()) {
+                ship.borrow_mut()
+                    .set_collision(Some(Collision::new([0., 0.])));
+            }
+        });
 
         //
         // Update state.

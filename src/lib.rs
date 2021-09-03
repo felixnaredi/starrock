@@ -2,6 +2,7 @@
 extern crate derive_builder;
 
 mod background;
+mod collision;
 mod context;
 mod dom;
 mod foreground;
