@@ -37,12 +37,20 @@ impl CircularHitbox
 
     pub fn intersects(&self, other: CircularHitbox) -> bool
     {
-        // TODO:
-        //   This should also handle cases where one or more of the objects wraps around the edges.
         let (x1, y1) = (self.position[0], self.position[1]);
+
         let (x2, y2) = (other.position[0], other.position[1]);
-        let x = x2 - x1;
-        let y = y2 - y1;
+
+        let x = match x2 - x1 {
+            delta if delta < -2. => delta + 4.,
+            delta if delta > 2. => delta - 4.,
+            delta => delta,
+        };
+        let y = match y2 - y1 {
+            delta if delta < -1.5 => delta + 3.,
+            delta if delta > 1.5 => delta - 3.,
+            delta => delta,
+        };
         self.radius + other.radius > (x * x + y * y).sqrt()
     }
 }
