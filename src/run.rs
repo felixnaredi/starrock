@@ -5,7 +5,6 @@ use std::{
     rc::Rc,
 };
 
-use rand::Rng;
 use wasm_bindgen::{
     prelude::*,
     JsCast,
@@ -22,11 +21,9 @@ use crate::{
     dom,
     foreground_renderer::ForegroundRenderer,
     keyboard_event_bus::KeyboardEventBus,
-    rock::{
-        Rock,
-        RockDescriptorBuilder,
-    },
+    rock::Rock,
     rock_renderer::RockRenderer,
+    rock_spawner::SpawnRandomizedRocksAnywhere,
     ship::{
         Ship,
         ShipDescriptorBuilder,
@@ -106,107 +103,14 @@ pub fn run() -> Result<(), JsValue>
     // Initialize rocks.
     // ---------------------------------------------------------------------------------------------
 
-    /*
-    let mut rng = rand::thread_rng();
-
-    let mut rocks: Vec<_> = (0..11)
-        .map(|_| {
-            let size = 0.05 + rng.gen_range(0.0, 0.1);
-            let position = [rng.gen_range(0., 4.), rng.gen_range(0., 3.)];
-            let velocity = [rng.gen_range(-10e-3, 10e-3), rng.gen_range(-10e-3, 10e-3)];
-            let shape = rng.gen();
-
-            Rock::new(
-                &RockDescriptorBuilder::default()
-                    .shape(shape)
-                    .size([size, size])
-                    .position(position)
-                    .velocity(velocity)
-                    .build()
-                    .unwrap(),
-            )
-        })
-        .collect(); */
-
-    let mut rng = rand::thread_rng();
-
-    //
-    // Rocks created in a pattern that tests for collisions where the rock wraps around the edges.
-    //
-    let mut rocks = vec![
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([1.0, 1.5])
-                .velocity([0.015, 0.])
-                .build()
-                .unwrap(),
-        ),
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([3.0, 1.5])
-                .velocity([-0.015, 0.])
-                .build()
-                .unwrap(),
-        ),
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([2.0, 2.5])
-                .velocity([0., 0.01])
-                .build()
-                .unwrap(),
-        ),
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([2.0, 0.5])
-                .velocity([0., -0.01])
-                .build()
-                .unwrap(),
-        ),
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([0.5, 0.5 * 0.75])
-                .velocity([0.01, 0.0075])
-                .build()
-                .unwrap(),
-        ),
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([3.5, 3.5 * 0.75])
-                .velocity([-0.01, -0.0075])
-                .build()
-                .unwrap(),
-        ),
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([0.5, 3.5 * 0.75])
-                .velocity([-0.01, 0.0075])
-                .build()
-                .unwrap(),
-        ),
-        Rock::new(
-            &RockDescriptorBuilder::default()
-                .shape(rng.gen())
-                .size([0.1, 0.1])
-                .position([3.5, 0.5 * 0.75])
-                .velocity([0.01, -0.0075])
-                .build()
-                .unwrap(),
-        ),
-    ];
+    let mut rocks: Vec<_> = SpawnRandomizedRocksAnywhere::builder()
+        .size_range((0.05, 0.15))
+        .speed_range((10e-4, 1.5 * 10e-3))
+        .build()
+        .unwrap()
+        .take(11)
+        .map(|descriptor| Rock::new(&descriptor))
+        .collect();
 
     let rock_renderer = RockRenderer::new(&context)?;
 

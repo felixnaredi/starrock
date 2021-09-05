@@ -12,6 +12,7 @@ mod keyboard_event_bus;
 mod rock;
 mod rock_renderer;
 mod rock_shape;
+mod rock_spawner;
 mod run;
 mod ship;
 mod ship_renderer;
