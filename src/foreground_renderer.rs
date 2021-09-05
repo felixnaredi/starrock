@@ -14,6 +14,10 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
+    matrix::{
+        self,
+        OrthographicProjectionMatrix,
+    },
 };
 
 /// Renders the foreground.
@@ -212,15 +216,15 @@ impl ForegroundRenderer
         gl.use_program(Some(&self.program));
 
         //
-        // Perspective matrix.
+        // Projection matrix.
         //
-        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
-        let matrix = [
-            [2. / 4., 0., 0., 0.],
-            [0., 2. / 3., 0., 0.],
-            [0., 0., 1., 0.],
-            [-1., -1., 0., 1.],
-        ];
+        let location = gl.get_uniform_location(&self.program, "projection_matrix");
+        let matrix = OrthographicProjectionMatrix::builder()
+            .x_min(0.)
+            .x_max(4.)
+            .y_min(0.)
+            .y_max(3.)
+            .build();
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
@@ -235,20 +239,10 @@ impl ForegroundRenderer
 
         let matrix = if (4. / 3.) * canvas_height > canvas_width {
             let (w, h) = (canvas_width * (3. / 4.), canvas_height);
-            [
-                [1., 0., 0., 0.],
-                [0., w / h, 0., 0.],
-                [0., 0., 1., 0.],
-                [0., 0., 0., 1.],
-            ]
+            matrix::scale_xy(1., w / h)
         } else {
             let (w, h) = (canvas_width, canvas_height * (4. / 3.));
-            [
-                [h / w, 0., 0., 0.],
-                [0., 1., 0., 0.],
-                [0., 0., 1., 0.],
-                [0., 0., 0., 1.],
-            ]
+            matrix::scale_xy(h / w, 1.)
         };
         let location = gl.get_uniform_location(&self.program, "view_matrix");
         gl.uniform_matrix4fv_with_f32_array(
@@ -288,7 +282,7 @@ impl ForegroundRenderer
         );
 
         //
-        // Cleanup.
+        // Clean-up.
         //
         gl.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER, None);
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
@@ -301,22 +295,22 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
     gl::compile_vertex_shader(
         context,
         r#"
-    attribute vec3 position;
-    attribute vec2 texcoord;
+        attribute vec3 position;
+        attribute vec2 texcoord;
 
-    uniform mat4 perspective_matrix;
-    uniform mat4 view_matrix;
+        uniform mat4 projection_matrix;
+        uniform mat4 view_matrix;
 
-    varying vec2 _texcoord;
+        varying vec2 _texcoord;
 
-    void main()
-    {
-      vec4 p0 = view_matrix * perspective_matrix * vec4(position, 1.0);
+        void main()
+        {
+            vec4 p0 = view_matrix * projection_matrix * vec4(position, 1.0);
 
-      gl_Position = p0;
-      _texcoord = texcoord;
-    }
-    "#,
+            gl_Position = p0;
+            _texcoord = texcoord;
+        }
+        "#,
     )
 }
 
@@ -325,17 +319,17 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
     gl::compile_fragment_shader(
         context,
         r#"
-    precision mediump float;
+        precision mediump float;
 
-    uniform sampler2D texture;
+        uniform sampler2D texture;
 
-    varying vec2 _texcoord;
+        varying vec2 _texcoord;
 
-    void main()
-    {
-        gl_FragColor = texture2D(texture, _texcoord);
-    }
-    "#,
+        void main()
+        {
+            gl_FragColor = texture2D(texture, _texcoord);
+        }
+        "#,
     )
 }
 

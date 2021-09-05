@@ -15,6 +15,7 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
+    matrix,
     rock::Rock,
     rock_shape::RockShape,
 };
@@ -67,44 +68,49 @@ impl RockRenderer
         gl.enable_vertex_attrib_array(0);
         gl.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
 
-        let s = rock.size();
-        let scale = arr2(&[
-            [s[0], 0.0, 0.0, 0.0],
-            [0.0, s[1], 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ]);
+        //
+        // Position and scale the rock with a world matrix.
+        //
+        let size = rock.size();
+        let position = rock.position();
 
-        let p = rock.position();
-        let transpose = arr2(&[
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [p[0], p[1], 0.0, 1.0],
-        ]);
+        let matrix = arr2(&matrix::scale_xy(size[0], size[1]))
+            .dot(&arr2(&matrix::translate_xy(position[0], position[1])));
 
-        let model_matrix_location = gl.get_uniform_location(&self.program, "model_matrix");
-        gl.uniform_matrix4fv_with_f32_array(
-            model_matrix_location.as_ref(),
-            false,
-            (scale.dot(&transpose)).view().as_slice().unwrap(),
-        );
+        let location = gl.get_uniform_location(&self.program, "world_matrix");
 
-        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
-        let matrix = arr2(context.foreground_perspective_matrix());
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
             matrix.view().as_slice().unwrap(),
         );
 
+        //
+        // Setup the projection matrix.
+        //
+        let location = gl.get_uniform_location(&self.program, "projection_matrix");
+        let matrix = arr2(context.foreground_projection_matrix());
+
+        gl.uniform_matrix4fv_with_f32_array(
+            location.as_ref(),
+            false,
+            matrix.view().as_slice().unwrap(),
+        );
+
+        //
+        // Draw.
+        //
         gl.draw_arrays(
             WebGlRenderingContext::TRIANGLE_FAN,
             0,
             rock.shape().sides() as i32 + 2,
         );
 
+        //
+        // Clean-up.
+        //
         gl.use_program(None);
+        gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, None);
     }
 }
 
@@ -113,15 +119,16 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
     gl::compile_vertex_shader(
         context,
         r#"
-            attribute vec4 position;
+        attribute vec4 position;
 
-            uniform mat4 model_matrix;
-            uniform mat4 perspective_matrix;
-    
-            void main() {
-                gl_Position = perspective_matrix * model_matrix * position;
-            }
-            "#,
+        uniform mat4 world_matrix;
+        uniform mat4 projection_matrix;
+
+        void main()
+        {
+            gl_Position = projection_matrix * world_matrix * position;
+        }
+        "#,
     )
 }
 
@@ -130,19 +137,18 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
     gl::compile_fragment_shader(
         context,
         r#"
-            void main() {
-                gl_FragColor = vec4(0.10, 0.10, 0.05, 1.00);
-            }
-            "#,
+        void main()
+        {
+            gl_FragColor = vec4(0.10, 0.10, 0.05, 1.00);
+        }
+        "#,
     )
 }
 
 fn polygon_vertices(n: u32) -> Option<Vec<f32>>
 {
-    (n > 2).then(|| ())?;
-
-    let r = 2.0 * PI * (1.0 / (n as f32));
-    Some(
+    (n > 2).then(|| {
+        let r = 2.0 * PI * (1.0 / (n as f32));
         iter::once(xyz(0.0, 0.0, 0.0))
             .chain(
                 (0..n)
@@ -151,8 +157,8 @@ fn polygon_vertices(n: u32) -> Option<Vec<f32>>
             )
             .chain(iter::once(xyz(1.0, 0.0, 0.0)))
             .flatten()
-            .collect(),
-    )
+            .collect()
+    })
 }
 
 fn xyz<T>(x: T, y: T, z: T) -> impl Iterator<Item = T>

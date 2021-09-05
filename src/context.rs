@@ -10,7 +10,7 @@ pub struct ContextDescriptor
     canvas_width: u32,
     canvas_height: u32,
     render_context: WebGlRenderingContext,
-    foreground_perspective_matrix: [[f32; 4]; 4],
+    foreground_projection_matrix: [[f32; 4]; 4],
 }
 
 #[derive(Getters, Setters)]
@@ -26,7 +26,7 @@ pub struct Context
     render_context: WebGlRenderingContext,
 
     #[getset(get = "pub")]
-    foreground_perspective_matrix: [[f32; 4]; 4],
+    foreground_projection_matrix: [[f32; 4]; 4],
     // foreground_texture: WebGlTexture,
     // foreground_texture_framebuffer: WebGlFramebuffer,
 }
@@ -39,7 +39,7 @@ impl Context
             canvas_width: descriptor.canvas_width,
             canvas_height: descriptor.canvas_height,
             render_context: descriptor.render_context,
-            foreground_perspective_matrix: descriptor.foreground_perspective_matrix,
+            foreground_projection_matrix: descriptor.foreground_projection_matrix,
         }
     }
 }

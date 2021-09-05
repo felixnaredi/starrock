@@ -9,6 +9,7 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
+    matrix,
     ship::Ship,
 };
 
@@ -100,28 +101,12 @@ impl ShipRenderer
         //
         // Calculate world matrix and set the uniform.
         //
-        let s = ship.size();
-        let p = ship.position();
-        let r = ship.yaw();
+        let size = ship.size();
+        let position = ship.position();
 
-        let matrix = arr2(&[
-            [s[0], 0.0, 0.0, 0.0],
-            [0.0, s[1], 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ])
-        .dot(&arr2(&[
-            [r.cos(), r.sin(), 0., 0.],
-            [-r.sin(), r.cos(), 0., 0.],
-            [0., 0., 1., 0.],
-            [0., 0., 0., 1.],
-        ]))
-        .dot(&arr2(&[
-            [1., 0., 0., 0.],
-            [0., 1., 0., 0.],
-            [0., 0., 1., 0.],
-            [p[0], p[1], 0., 1.],
-        ]));
+        let matrix = arr2(&matrix::scale_xy(size[0], size[1]))
+            .dot(&arr2(&matrix::rotate_xy(*ship.yaw())))
+            .dot(&arr2(&matrix::translate_xy(position[0], position[1])));
 
         let location = gl.get_uniform_location(&self.program, "world_matrix");
         gl.uniform_matrix4fv_with_f32_array(
@@ -131,10 +116,10 @@ impl ShipRenderer
         );
 
         //
-        // Set the perspective matrix uniform
+        // Set the projection matrix uniform
         //
-        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
-        let matrix = arr2(context.foreground_perspective_matrix());
+        let location = gl.get_uniform_location(&self.program, "projection_matrix");
+        let matrix = arr2(context.foreground_projection_matrix());
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
@@ -146,7 +131,11 @@ impl ShipRenderer
         //
         gl.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);
 
+        //
+        // Clean-up
+        //
         gl.use_program(None);
+        gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, None);
     }
 }
 
@@ -155,15 +144,16 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
     gl::compile_vertex_shader(
         context,
         r#"
-    attribute vec4 position;
+        attribute vec4 position;
 
-    uniform mat4 world_matrix;
-    uniform mat4 perspective_matrix;
+        uniform mat4 world_matrix;
+        uniform mat4 projection_matrix;
 
-    void main() {
-      gl_Position = perspective_matrix * world_matrix * position;
-    }
-    "#,
+        void main()
+        {
+            gl_Position = projection_matrix * world_matrix * position;
+        }
+        "#,
     )
 }
 
@@ -172,11 +162,12 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
     gl::compile_fragment_shader(
         context,
         r#"
-    precision mediump float;
+        precision mediump float;
 
-    void main() {
-        gl_FragColor = vec4(0.5, 0.8, 0.9, 1.0);
-    }
+        void main()
+        {
+            gl_FragColor = vec4(0.5, 0.8, 0.9, 1.0);
+        }
     "#,
     )
 }

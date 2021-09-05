@@ -21,6 +21,7 @@ use crate::{
     dom,
     foreground_renderer::ForegroundRenderer,
     keyboard_event_bus::KeyboardEventBus,
+    matrix::OrthographicProjectionMatrix,
     rock::Rock,
     rock_renderer::RockRenderer,
     rock_spawner::SpawnRandomizedRocksAnywhere,
@@ -123,18 +124,14 @@ pub fn run() -> Result<(), JsValue>
             .render_context(context)
             .canvas_width(dom::canvas().unwrap().client_width() as u32)
             .canvas_height(dom::canvas().unwrap().client_height() as u32)
-            .foreground_perspective_matrix({
-                let r = 5.;
-                let l = -1.;
-                let t = 4.;
-                let b = -1.;
-                [
-                    [2. / (r - l), 0., 0., 0.],
-                    [0., 2. / (t - b), 0., 0.],
-                    [0., 0., 1., 0.],
-                    [-(r + l) / (r - l), -(t + b) / (t - b), 0., 1.],
-                ]
-            })
+            .foreground_projection_matrix(
+                OrthographicProjectionMatrix::builder()
+                    .x_min(-1.)
+                    .x_max(5.)
+                    .y_min(-1.)
+                    .y_max(4.)
+                    .build(),
+            )
             .build()
             .map_err(|error| format!("{}", error))?,
     );

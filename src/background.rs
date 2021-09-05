@@ -8,6 +8,7 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
+    matrix,
 };
 
 pub struct Background
@@ -27,12 +28,13 @@ impl Background
             attribute vec4 position;
 
             uniform mat4 world_matrix;
-            uniform mat4 perspective_matrix;
+            uniform mat4 projection_matrix;
             
-            varying vec4 vertex_position;            
+            varying vec4 vertex_position;
     
-            void main() {
-                vertex_position = perspective_matrix * world_matrix * position;
+            void main()
+            {
+                vertex_position = projection_matrix * world_matrix * position;
                 gl_Position = position;
             }
             "#,
@@ -43,15 +45,16 @@ impl Background
             r#"
             #define PI 3.14159265359
 
-            precision mediump float;        
+            precision mediump float;
 
             varying vec4 vertex_position;
 
-            void main() {
+            void main()
+            {
                 vec4 d0 = vertex_position * vertex_position;
                 float d1 = sqrt(d0.x + d0.y + d0.z);
                 float d2 = d1 * d1;
-                
+
                 gl_FragColor = vec4(abs(sin(d2 * 17.0)) * 0.3, 
                                     0.1, 
                                     abs(cos(d2 * 29.0)) * 0.3,
@@ -63,12 +66,12 @@ impl Background
         let program = gl::link_program(context, &vertex_shader, &fragment_shader)?;
 
         let vertices: [f32; 18] = [
-            1.0, 1.0, 0.0, // 0
-            -1.0, 1.0, 0.0, // 1
-            -1.0, -1.0, 0.0, // 2
-            -1.0, -1.0, 0.0, // 3
-            1.0, -1.0, 0.0, // 4
-            1.0, 1.0, 0.0, // 5
+            1., 1., 0., // 0
+            -1., 1., 0., // 1
+            -1., -1., 0., // 2
+            -1., -1., 0., // 3
+            1., -1., 0., // 4
+            1., 1., 0., // 5
         ];
 
         let vertex_buffer = context.create_buffer().ok_or("failed to create buffer")?;
@@ -103,13 +106,9 @@ impl Background
         );
         gl.enable_vertex_attrib_array(0);
 
+        let matrix = arr2(&matrix::translate_xy(self.position[0], self.position[1]));
         let location = gl.get_uniform_location(&self.program, "world_matrix");
-        let matrix = arr2(&[
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [self.position[0], self.position[1], 0.0, 1.0],
-        ]);
+
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
@@ -118,13 +117,9 @@ impl Background
 
         let w = context.canvas_width().clone() as f32;
         let h = context.canvas_height().clone() as f32;
-        let matrix = arr2(&[
-            [1., 0., 0., 0.],
-            [0., h / w, 0., 0.],
-            [0., 0., 1., 0.],
-            [0., 0., 0., 1.],
-        ]);
-        let location = gl.get_uniform_location(&self.program, "perspective_matrix");
+        let matrix = arr2(&matrix::scale_xy(1., h / w));
+
+        let location = gl.get_uniform_location(&self.program, "projection_matrix");
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
