@@ -1,4 +1,7 @@
-use std::f32::consts::PI;
+use std::{
+    f32::consts::PI,
+    ops::Range,
+};
 
 use rand::Rng;
 use vecmath::vec2_scale;
@@ -11,8 +14,8 @@ use crate::rock::{
 #[derive(Builder, Debug)]
 pub struct SpawnRandomizedRocksAnywhere
 {
-    size_range: (f32, f32),
-    speed_range: (f32, f32),
+    size_range: Range<f32>,
+    speed_range: Range<f32>,
 }
 
 impl SpawnRandomizedRocksAnywhere
@@ -31,11 +34,9 @@ impl Iterator for SpawnRandomizedRocksAnywhere
     {
         let mut rng = rand::thread_rng();
 
-        let (min_size, max_size) = self.size_range;
-        let size = rng.gen_range(min_size..max_size);
+        let size = rng.gen_range(self.size_range.clone());
 
-        let (min_speed, max_speed) = self.speed_range;
-        let speed = rng.gen_range(min_speed..max_speed);
+        let speed = rng.gen_range(self.speed_range.clone());
         let direction = rng.gen_range(0. ..PI * 2.);
         let velocity = vec2_scale([direction.cos(), direction.sin()], speed);
 

@@ -105,8 +105,8 @@ pub fn run() -> Result<(), JsValue>
     // ---------------------------------------------------------------------------------------------
 
     let mut rocks: Vec<_> = SpawnRandomizedRocksAnywhere::builder()
-        .size_range((0.05, 0.15))
-        .speed_range((10e-4, 1.5 * 10e-3))
+        .size_range(0.05..0.15)
+        .speed_range(10e-4..1.5 * 10e-3)
         .build()
         .unwrap()
         .take(11)
@@ -126,10 +126,8 @@ pub fn run() -> Result<(), JsValue>
             .canvas_height(dom::canvas().unwrap().client_height() as u32)
             .foreground_projection_matrix(
                 OrthographicProjectionMatrix::builder()
-                    .x_min(-1.)
-                    .x_max(5.)
-                    .y_min(-1.)
-                    .y_max(4.)
+                    .abscissa(-1. ..5.)
+                    .ordinate(-1. ..4.)
                     .build(),
             )
             .build()

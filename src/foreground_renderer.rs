@@ -220,10 +220,8 @@ impl ForegroundRenderer
         //
         let location = gl.get_uniform_location(&self.program, "projection_matrix");
         let matrix = OrthographicProjectionMatrix::builder()
-            .x_min(0.)
-            .x_max(4.)
-            .y_min(0.)
-            .y_max(3.)
+            .abscissa(0. ..4.)
+            .ordinate(0. ..3.)
             .build();
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),

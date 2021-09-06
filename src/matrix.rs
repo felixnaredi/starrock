@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 pub type Matrix4x4 = [[f32; 4]; 4];
 
 /// Scale matrix for x and y-axis.
@@ -37,17 +39,8 @@ pub fn rotate_xy(radians: f32) -> Matrix4x4
 #[builder(build_fn(skip))]
 pub struct OrthographicProjectionMatrix
 {
-    #[builder(default = "-1.")]
-    x_min: f32,
-
-    #[builder(default = "1.")]
-    x_max: f32,
-
-    #[builder(default = "-1.")]
-    y_min: f32,
-
-    #[builder(default = "1.")]
-    y_max: f32,
+    abscissa: Range<f32>,
+    ordinate: Range<f32>,
 }
 
 impl OrthographicProjectionMatrix
@@ -62,10 +55,10 @@ impl OrthographicProjectionMatrixBuilder
 {
     pub fn build(&self) -> Matrix4x4
     {
-        let x_min = self.x_min.unwrap();
-        let x_max = self.x_max.unwrap();
-        let y_min = self.y_min.unwrap();
-        let y_max = self.y_max.unwrap();
+        let x_min = self.abscissa.as_ref().map(|r| r.start).unwrap_or(-1.);
+        let x_max = self.abscissa.as_ref().map(|r| r.end).unwrap_or(1.);
+        let y_min = self.ordinate.as_ref().map(|r| r.start).unwrap_or(-1.);
+        let y_max = self.ordinate.as_ref().map(|r| r.end).unwrap_or(1.);
         [
             [2. / (x_max - x_min), 0., 0., 0.],
             [0., 2. / (y_max - y_min), 0., 0.],
