@@ -42,7 +42,7 @@ impl Distribution<RockShape> for Standard
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> RockShape
     {
-        match rng.gen_range(0, 4) {
+        match rng.gen_range(0..4) {
             0 => RockShape::Pentagon,
             1 => RockShape::Hexagon,
             2 => RockShape::Septagon,
