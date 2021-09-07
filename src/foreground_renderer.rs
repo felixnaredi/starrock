@@ -15,8 +15,8 @@ use crate::{
     context::Context,
     gl,
     matrix::{
-        self,
         OrthographicProjectionMatrix,
+        Scale,
     },
 };
 
@@ -237,17 +237,14 @@ impl ForegroundRenderer
 
         let matrix = if (4. / 3.) * canvas_height > canvas_width {
             let (w, h) = (canvas_width * (3. / 4.), canvas_height);
-            matrix::scale_xy(1., w / h)
+            Scale::id().y(w / h).array()
         } else {
             let (w, h) = (canvas_width, canvas_height * (4. / 3.));
-            matrix::scale_xy(h / w, 1.)
+            Scale::id().x(h / w).array()
         };
+
         let location = gl.get_uniform_location(&self.program, "view_matrix");
-        gl.uniform_matrix4fv_with_f32_array(
-            location.as_ref(),
-            false,
-            arr2(&matrix).view().as_slice().unwrap(),
-        );
+        gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         //
         // Setup vertex buffer.

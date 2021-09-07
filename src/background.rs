@@ -1,4 +1,3 @@
-use ndarray::arr2;
 use web_sys::{
     WebGlBuffer,
     WebGlProgram,
@@ -8,7 +7,10 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
-    matrix,
+    matrix::{
+        Scale,
+        Translate,
+    },
 };
 
 pub struct Background
@@ -106,25 +108,20 @@ impl Background
         );
         gl.enable_vertex_attrib_array(0);
 
-        let matrix = arr2(&matrix::translate_xy(self.position[0], self.position[1]));
+        let matrix = Translate::id()
+            .x(self.position[0])
+            .y(self.position[1])
+            .array();
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 
-        gl.uniform_matrix4fv_with_f32_array(
-            location.as_ref(),
-            false,
-            matrix.view().as_slice().unwrap(),
-        );
+        gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         let w = context.canvas_width().clone() as f32;
         let h = context.canvas_height().clone() as f32;
-        let matrix = arr2(&matrix::scale_xy(1., h / w));
+        let matrix = Scale::id().y(h / w).array();
 
         let location = gl.get_uniform_location(&self.program, "projection_matrix");
-        gl.uniform_matrix4fv_with_f32_array(
-            location.as_ref(),
-            false,
-            matrix.view().as_slice().unwrap(),
-        );
+        gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         gl.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
         gl.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, 6);

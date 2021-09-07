@@ -74,8 +74,11 @@ impl RockRenderer
         let size = rock.size();
         let position = rock.position();
 
-        let matrix = arr2(&matrix::scale_xy(size[0], size[1]))
-            .dot(&arr2(&matrix::translate_xy(position[0], position[1])));
+        let matrix = matrix::Scale::id()
+            .x(size[0])
+            .y(size[1])
+            .arr2()
+            .dot(&matrix::Translate::id().x(position[0]).y(position[1]).arr2());
 
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 

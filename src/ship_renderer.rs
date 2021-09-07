@@ -9,7 +9,11 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
-    matrix,
+    matrix::{
+        Rotate,
+        Scale,
+        Translate,
+    },
     ship::Ship,
 };
 
@@ -104,11 +108,15 @@ impl ShipRenderer
         let size = ship.size();
         let position = ship.position();
 
-        let matrix = arr2(&matrix::scale_xy(size[0], size[1]))
-            .dot(&arr2(&matrix::rotate_xy(*ship.yaw())))
-            .dot(&arr2(&matrix::translate_xy(position[0], position[1])));
+        let matrix = Scale::id()
+            .x(size[0])
+            .y(size[1])
+            .arr2()
+            .dot(&Rotate::id().radians(*ship.yaw()).arr2())
+            .dot(&Translate::id().x(position[0]).y(position[1]).arr2());
 
         let location = gl.get_uniform_location(&self.program, "world_matrix");
+
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
@@ -118,8 +126,9 @@ impl ShipRenderer
         //
         // Set the projection matrix uniform
         //
-        let location = gl.get_uniform_location(&self.program, "projection_matrix");
         let matrix = arr2(context.foreground_projection_matrix());
+        let location = gl.get_uniform_location(&self.program, "projection_matrix");
+
         gl.uniform_matrix4fv_with_f32_array(
             location.as_ref(),
             false,
