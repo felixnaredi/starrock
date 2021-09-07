@@ -1,6 +1,5 @@
 use std::iter;
 
-use ndarray::arr2;
 use wasm_bindgen::JsValue;
 use web_sys::{
     WebGlBuffer,
@@ -15,6 +14,7 @@ use crate::{
     context::Context,
     gl,
     matrix::{
+        Matrix4x4,
         OrthographicProjectionMatrix,
         Scale,
     },
@@ -219,15 +219,11 @@ impl ForegroundRenderer
         // Projection matrix.
         //
         let location = gl.get_uniform_location(&self.program, "projection_matrix");
-        let matrix = OrthographicProjectionMatrix::builder()
+        let matrix = OrthographicProjectionMatrix::default()
             .abscissa(0. ..4.)
             .ordinate(0. ..3.)
-            .build();
-        gl.uniform_matrix4fv_with_f32_array(
-            location.as_ref(),
-            false,
-            arr2(&matrix).view().as_slice().unwrap(),
-        );
+            .array();
+        gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         //
         // View matrix.

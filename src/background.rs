@@ -8,6 +8,7 @@ use crate::{
     context::Context,
     gl,
     matrix::{
+        Matrix4x4,
         Scale,
         Translate,
     },
@@ -108,10 +109,7 @@ impl Background
         );
         gl.enable_vertex_attrib_array(0);
 
-        let matrix = Translate::id()
-            .x(self.position[0])
-            .y(self.position[1])
-            .array();
+        let matrix = Translate::id().vec2(&self.position).array();
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 
         gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);

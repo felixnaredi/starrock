@@ -27,8 +27,6 @@ pub struct Context
 
     #[getset(get = "pub")]
     foreground_projection_matrix: [[f32; 4]; 4],
-    // foreground_texture: WebGlTexture,
-    // foreground_texture_framebuffer: WebGlFramebuffer,
 }
 
 impl Context

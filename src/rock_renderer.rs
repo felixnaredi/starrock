@@ -15,7 +15,11 @@ use web_sys::{
 use crate::{
     context::Context,
     gl,
-    matrix,
+    matrix::{
+        Matrix4x4,
+        Scale,
+        Translate,
+    },
     rock::Rock,
     rock_shape::RockShape,
 };
@@ -71,14 +75,10 @@ impl RockRenderer
         //
         // Position and scale the rock with a world matrix.
         //
-        let size = rock.size();
-        let position = rock.position();
-
-        let matrix = matrix::Scale::id()
-            .x(size[0])
-            .y(size[1])
+        let matrix = Scale::id()
+            .vec2(rock.size())
             .arr2()
-            .dot(&matrix::Translate::id().x(position[0]).y(position[1]).arr2());
+            .dot(&Translate::id().vec2(rock.position()).arr2());
 
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 

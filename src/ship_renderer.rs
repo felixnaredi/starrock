@@ -10,6 +10,7 @@ use crate::{
     context::Context,
     gl,
     matrix::{
+        Matrix4x4,
         Rotate,
         Scale,
         Translate,
@@ -105,15 +106,11 @@ impl ShipRenderer
         //
         // Calculate world matrix and set the uniform.
         //
-        let size = ship.size();
-        let position = ship.position();
-
         let matrix = Scale::id()
-            .x(size[0])
-            .y(size[1])
+            .vec2(ship.size())
             .arr2()
             .dot(&Rotate::id().radians(*ship.yaw()).arr2())
-            .dot(&Translate::id().x(position[0]).y(position[1]).arr2());
+            .dot(&Translate::id().vec2(ship.position()).arr2());
 
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 
