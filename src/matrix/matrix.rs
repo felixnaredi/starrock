@@ -7,16 +7,19 @@ use ndarray::{
 
 pub trait Matrix4x4: Sized
 {
-    fn matrix(self) -> [[f32; 4]; 4];
-
-    fn array(self) -> [f32; 16]
+    fn into_matrix(self) -> [[f32; 4]; 4]
     {
-        unsafe { mem::transmute(self.matrix()) }
+        unsafe { mem::transmute(self.into_array()) }
     }
 
-    fn arr2(self) -> Array2<f32>
+    fn into_array(self) -> [f32; 16]
     {
-        arr2(&self.matrix())
+        unsafe { mem::transmute(self.into_matrix()) }
+    }
+
+    fn into_arr2(self) -> Array2<f32>
+    {
+        arr2(&self.into_matrix())
     }
 }
 
@@ -32,7 +35,7 @@ impl Id
 
 impl Matrix4x4 for Id
 {
-    fn matrix(self) -> [[f32; 4]; 4]
+    fn into_matrix(self) -> [[f32; 4]; 4]
     {
         [
             [1., 0., 0., 0.],

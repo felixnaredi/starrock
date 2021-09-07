@@ -1,4 +1,3 @@
-use ndarray::arr2;
 use web_sys::{
     WebGlBuffer,
     WebGlProgram,
@@ -108,9 +107,9 @@ impl ShipRenderer
         //
         let matrix = Scale::id()
             .vec2(ship.size())
-            .arr2()
-            .dot(&Rotate::id().radians(*ship.yaw()).arr2())
-            .dot(&Translate::id().vec2(ship.position()).arr2());
+            .into_arr2()
+            .dot(&Rotate::id().radians(*ship.yaw()).into_arr2())
+            .dot(&Translate::id().vec2(ship.position()).into_arr2());
 
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 
@@ -123,14 +122,10 @@ impl ShipRenderer
         //
         // Set the projection matrix uniform
         //
-        let matrix = arr2(context.foreground_projection_matrix());
+        let matrix = context.foreground_projection_matrix().clone().into_array();
         let location = gl.get_uniform_location(&self.program, "projection_matrix");
 
-        gl.uniform_matrix4fv_with_f32_array(
-            location.as_ref(),
-            false,
-            matrix.view().as_slice().unwrap(),
-        );
+        gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         //
         // Draw ship.

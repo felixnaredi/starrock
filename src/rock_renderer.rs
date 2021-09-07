@@ -4,7 +4,6 @@ use std::{
     iter,
 };
 
-use ndarray::arr2;
 use web_sys::{
     WebGlBuffer,
     WebGlProgram,
@@ -77,8 +76,8 @@ impl RockRenderer
         //
         let matrix = Scale::id()
             .vec2(rock.size())
-            .arr2()
-            .dot(&Translate::id().vec2(rock.position()).arr2());
+            .into_arr2()
+            .dot(&Translate::id().vec2(rock.position()).into_arr2());
 
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 
@@ -92,13 +91,9 @@ impl RockRenderer
         // Setup the projection matrix.
         //
         let location = gl.get_uniform_location(&self.program, "projection_matrix");
-        let matrix = arr2(context.foreground_projection_matrix());
+        let matrix = context.foreground_projection_matrix().clone().into_array();
 
-        gl.uniform_matrix4fv_with_f32_array(
-            location.as_ref(),
-            false,
-            matrix.view().as_slice().unwrap(),
-        );
+        gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         //
         // Draw.

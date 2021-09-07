@@ -15,7 +15,7 @@ use crate::{
     gl,
     matrix::{
         Matrix4x4,
-        OrthographicProjectionMatrix,
+        OrthographicProjection,
         Scale,
     },
 };
@@ -219,10 +219,10 @@ impl ForegroundRenderer
         // Projection matrix.
         //
         let location = gl.get_uniform_location(&self.program, "projection_matrix");
-        let matrix = OrthographicProjectionMatrix::default()
+        let matrix = OrthographicProjection::default()
             .abscissa(0. ..4.)
             .ordinate(0. ..3.)
-            .array();
+            .into_array();
         gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         //
@@ -233,10 +233,10 @@ impl ForegroundRenderer
 
         let matrix = if (4. / 3.) * canvas_height > canvas_width {
             let (w, h) = (canvas_width * (3. / 4.), canvas_height);
-            Scale::id().y(w / h).array()
+            Scale::id().y(w / h).into_array()
         } else {
             let (w, h) = (canvas_width, canvas_height * (4. / 3.));
-            Scale::id().x(h / w).array()
+            Scale::id().x(h / w).into_array()
         };
 
         let location = gl.get_uniform_location(&self.program, "view_matrix");

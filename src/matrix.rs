@@ -7,7 +7,7 @@ pub use self::{
         Id,
         Matrix4x4,
     },
-    orthographic::OrthographicProjectionMatrix,
+    orthographic::OrthographicProjection,
     transform::{
         Rotate,
         Scale,

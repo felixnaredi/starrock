@@ -12,7 +12,7 @@ fn unwrap3_or(x: Option<f32>, y: Option<f32>, z: Option<f32>, value: f32) -> (f3
 }
 
 /// Builds a scale matrix.
-#[derive(Builder, Debug)]
+#[derive(Builder, Clone, Debug)]
 #[builder(pattern = "owned")]
 #[builder(build_fn(skip))]
 pub struct Scale
@@ -41,7 +41,7 @@ impl ScaleBuilder
 
 impl Matrix4x4 for ScaleBuilder
 {
-    fn matrix(self) -> [[f32; 4]; 4]
+    fn into_matrix(self) -> [[f32; 4]; 4]
     {
         let (x, y, z) = unwrap3_or(self.x, self.y, self.z, 1.);
         [
@@ -54,7 +54,7 @@ impl Matrix4x4 for ScaleBuilder
 }
 
 /// Builds a translation matrix.
-#[derive(Builder, Debug)]
+#[derive(Builder, Clone, Debug)]
 #[builder(pattern = "owned")]
 #[builder(build_fn(skip))]
 pub struct Translate
@@ -83,7 +83,7 @@ impl TranslateBuilder
 
 impl Matrix4x4 for TranslateBuilder
 {
-    fn matrix(self) -> [[f32; 4]; 4]
+    fn into_matrix(self) -> [[f32; 4]; 4]
     {
         let (x, y, z) = unwrap3_or(self.x, self.y, self.z, 0.);
         [
@@ -96,7 +96,7 @@ impl Matrix4x4 for TranslateBuilder
 }
 
 /// Builds a rotation matrix.
-#[derive(Builder, Debug)]
+#[derive(Builder, Clone, Debug)]
 #[builder(pattern = "owned")]
 #[builder(build_fn(skip))]
 pub struct Rotate
@@ -114,7 +114,7 @@ impl Rotate
 
 impl Matrix4x4 for RotateBuilder
 {
-    fn matrix(self) -> [[f32; 4]; 4]
+    fn into_matrix(self) -> [[f32; 4]; 4]
     {
         if let Some(radians) = self.radians {
             let c = radians.cos();
@@ -126,7 +126,7 @@ impl Matrix4x4 for RotateBuilder
                 [0., 0., 0., 1.],
             ]
         } else {
-            Id::new().matrix()
+            Id::new().into_matrix()
         }
     }
 }

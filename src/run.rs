@@ -21,10 +21,7 @@ use crate::{
     dom,
     foreground_renderer::ForegroundRenderer,
     keyboard_event_bus::KeyboardEventBus,
-    matrix::{
-        Matrix4x4,
-        OrthographicProjectionMatrix,
-    },
+    matrix::OrthographicProjection,
     rock::Rock,
     rock_renderer::RockRenderer,
     rock_spawner::SpawnRandomizedRocksAnywhere,
@@ -128,10 +125,10 @@ pub fn run() -> Result<(), JsValue>
             .canvas_width(dom::canvas().unwrap().client_width() as u32)
             .canvas_height(dom::canvas().unwrap().client_height() as u32)
             .foreground_projection_matrix(
-                OrthographicProjectionMatrix::default()
+                OrthographicProjection::default()
                     .abscissa(-1. ..5.)
                     .ordinate(-1. ..4.)
-                    .matrix(),
+                    .build(),
             )
             .build()
             .map_err(|error| format!("{}", error))?,

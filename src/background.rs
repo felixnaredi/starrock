@@ -109,14 +109,14 @@ impl Background
         );
         gl.enable_vertex_attrib_array(0);
 
-        let matrix = Translate::id().vec2(&self.position).array();
+        let matrix = Translate::id().vec2(&self.position).into_array();
         let location = gl.get_uniform_location(&self.program, "world_matrix");
 
         gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);
 
         let w = context.canvas_width().clone() as f32;
         let h = context.canvas_height().clone() as f32;
-        let matrix = Scale::id().y(h / w).array();
+        let matrix = Scale::id().y(h / w).into_array();
 
         let location = gl.get_uniform_location(&self.program, "projection_matrix");
         gl.uniform_matrix4fv_with_f32_array(location.as_ref(), false, &matrix);

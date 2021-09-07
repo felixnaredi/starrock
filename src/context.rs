@@ -4,13 +4,15 @@ use getset::{
 };
 use web_sys::WebGlRenderingContext;
 
+use crate::matrix::OrthographicProjection;
+
 #[derive(Builder)]
 pub struct ContextDescriptor
 {
     canvas_width: u32,
     canvas_height: u32,
     render_context: WebGlRenderingContext,
-    foreground_projection_matrix: [[f32; 4]; 4],
+    foreground_projection_matrix: OrthographicProjection,
 }
 
 #[derive(Getters, Setters)]
@@ -26,7 +28,7 @@ pub struct Context
     render_context: WebGlRenderingContext,
 
     #[getset(get = "pub")]
-    foreground_projection_matrix: [[f32; 4]; 4],
+    foreground_projection_matrix: OrthographicProjection,
 }
 
 impl Context
