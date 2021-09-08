@@ -43,7 +43,7 @@ pub struct Ship
     yaw_delta: f32,
 
     #[getset(get = "pub", set = "pub")]
-    collisions: Option<Vec<Collision>>,
+    collisions: Vec<Collision>,
 }
 
 impl Ship
@@ -56,7 +56,7 @@ impl Ship
             velocity: [0., 0.],
             yaw: descriptor.yaw,
             yaw_delta: 0.,
-            collisions: None,
+            collisions: Vec::new(),
         }
     }
 
@@ -73,25 +73,23 @@ impl Ship
 
     pub fn update(&mut self)
     {
-        if let Some(collisions) = self.collisions.take() {
-            for collision in collisions {
-                let x_a = self.position;
-                let u_a = self.velocity;
-                let m_a = self.weight();
+        for collision in self.collisions.iter() {
+            let x_a = self.position;
+            let u_a = self.velocity;
+            let m_a = self.weight();
 
-                let x_b = collision.other_objects_position().clone();
-                let u_b = collision.other_objects_velocity().clone();
-                let m_b = *collision.other_objects_weight();
+            let x_b = collision.other_objects_position().clone();
+            let u_b = collision.other_objects_velocity().clone();
+            let m_b = *collision.other_objects_weight();
 
-                let dx = vec2_sub(x_a, x_b);
-                let nx = dx[0].powi(2) + dx[1].powi(2);
-                let du = vec2_sub(u_a, u_b);
-                let dot_ux = vec2_dot(du, dx);
-                let m = 2. * m_b / (m_a + m_b);
+            let dx = vec2_sub(x_a, x_b);
+            let nx = dx[0].powi(2) + dx[1].powi(2);
+            let du = vec2_sub(u_a, u_b);
+            let dot_ux = vec2_dot(du, dx);
+            let m = 2. * m_b / (m_a + m_b);
 
-                self.velocity = vec2_sub(u_a, vec2_scale(dx, m * dot_ux / nx));
-            }
-        };
+            self.velocity = vec2_sub(u_a, vec2_scale(dx, m * dot_ux / nx));
+        }
 
         self.position[0] += self.velocity[0];
         self.position[1] += self.velocity[1];
@@ -102,6 +100,7 @@ impl Ship
         self.yaw_delta *= 0.45;
 
         foreground::position_modulo(&mut self.position);
+        self.collisions.clear();
     }
 
     pub fn hitbox(&self) -> CircularHitbox
@@ -119,7 +118,6 @@ impl Ship
 
     pub fn push_collision(&mut self, collision: Collision)
     {
-        let collisions = self.collisions.get_or_insert(Vec::new());
-        collisions.push(collision)
+        self.collisions.push(collision);
     }
 }
