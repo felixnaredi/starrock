@@ -7,7 +7,6 @@ use getset::{
 use vecmath::{
     vec2_add,
     vec2_dot,
-    vec2_normalized_sub,
     vec2_scale,
     vec2_sub,
 };
@@ -45,8 +44,8 @@ pub struct Rock
     #[getset(get = "pub")]
     velocity: [f32; 2],
 
-    #[getset(get = "pub", set = "pub")]
-    collision: Option<Collision>,
+    #[getset(get = "pub")]
+    collisions: Option<Vec<Collision>>,
 }
 
 impl Rock
@@ -58,26 +57,40 @@ impl Rock
             size: descriptor.size,
             position: descriptor.position,
             velocity: descriptor.velocity,
-            collision: None,
+            collisions: None,
         }
     }
 
     pub fn update(&mut self)
     {
-        // TODO:
-        //   This is just a placeholder collision.
-        self.collision.take().map(|collision| {
-            let other_position = collision.other_objects_position().clone();
-            let other_velocity = collision.other_objects_velocity().clone();
+        if let Some(collisions) = self.collisions.take() {
+            for collision in collisions {
+                let x_a = self.position;
+                let u_a = self.velocity;
+                let m_a = self.weight();
 
-            let direction = vec2_normalized_sub(other_position, self.position);
-            let a1 = vec2_scale(other_velocity, vec2_dot(direction, other_velocity));
-            let a2 = vec2_sub(other_velocity, a1);
-            let b1 = vec2_scale(self.velocity, vec2_dot(direction, other_velocity));
-            self.velocity = vec2_add(a2, b1);
-        });
+                let x_b = collision.other_objects_position().clone();
+                let u_b = collision.other_objects_velocity().clone();
+                let m_b = *collision.other_objects_weight();
+
+                let dx = vec2_sub(x_a, x_b);
+                let nx = dx[0].powi(2) + dx[1].powi(2);
+                let du = vec2_sub(u_a, u_b);
+                let dot_ux = vec2_dot(du, dx);
+                let m = 2. * m_b / (m_a + m_b);
+
+                self.velocity = vec2_sub(u_a, vec2_scale(dx, m * dot_ux / nx));
+            }
+        };
+
         self.position = vec2_add(self.position, self.velocity);
         foreground::position_modulo(&mut self.position);
+    }
+
+    pub fn push_collision(&mut self, collision: Collision)
+    {
+        let collisions = self.collisions.get_or_insert(Vec::new());
+        collisions.push(collision)
     }
 
     /// The hitbox of the `Rock`.
@@ -94,5 +107,24 @@ impl Rock
         let radius = (w.powi(2) + h.powi(2)).sqrt();
 
         CircularHitbox::new(self.position.clone(), radius)
+    }
+
+    fn area(&self) -> f32
+    {
+        let w = self.size[0];
+        let h = self.size[1];
+
+        if w == h {
+            let sides = self.shape.sides() as f32;
+            let angle = 2. * PI / sides;
+            w.powi(2) * angle.sin() / 2. * sides
+        } else {
+            panic!("area for ellipsis not implemented")
+        }
+    }
+
+    pub fn weight(&self) -> f32
+    {
+        4. * self.area()
     }
 }

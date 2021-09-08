@@ -1,6 +1,6 @@
 use getset::Getters;
 
-#[derive(Debug, Getters)]
+#[derive(Builder, Debug, Getters)]
 pub struct Collision
 {
     #[get = "pub"]
@@ -8,16 +8,16 @@ pub struct Collision
 
     #[get = "pub"]
     other_objects_velocity: [f32; 2],
+
+    #[get = "pub"]
+    other_objects_weight: f32,
 }
 
 impl Collision
 {
-    pub fn new(other_objects_position: [f32; 2], other_objects_velocity: [f32; 2]) -> Collision
+    pub fn builder() -> CollisionBuilder
     {
-        Collision {
-            other_objects_position,
-            other_objects_velocity,
-        }
+        CollisionBuilder::default()
     }
 }
 
@@ -35,22 +35,24 @@ impl CircularHitbox
         CircularHitbox { position, radius }
     }
 
-    pub fn intersects(&self, other: CircularHitbox) -> bool
+    pub fn intersects(&self, other: &CircularHitbox) -> Option<[f32; 2]>
     {
         let (x1, y1) = (self.position[0], self.position[1]);
 
         let (x2, y2) = (other.position[0], other.position[1]);
 
-        let x = match x2 - x1 {
-            delta if delta < -2. => delta + 4.,
-            delta if delta > 2. => delta - 4.,
-            delta => delta,
+        let x2 = match x2 - x1 {
+            delta if delta < -2. => x2 + 4.,
+            delta if delta > 2. => x2 - 4.,
+            _ => x2,
         };
-        let y = match y2 - y1 {
-            delta if delta < -1.5 => delta + 3.,
-            delta if delta > 1.5 => delta - 3.,
-            delta => delta,
+        let y2 = match y2 - y1 {
+            delta if delta < -1.5 => y2 + 3.,
+            delta if delta > 1.5 => y2 - 3.,
+            _ => y2,
         };
-        self.radius + other.radius > (x * x + y * y).sqrt()
+        let x = x2 - x1;
+        let y = y2 - y1;
+        (self.radius + other.radius > (x * x + y * y).sqrt()).then(|| [x2, y2])
     }
 }

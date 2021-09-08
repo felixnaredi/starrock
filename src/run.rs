@@ -171,35 +171,63 @@ pub fn run() -> Result<(), JsValue>
                         .iter()
                         .enumerate()
                         .filter_map(move |(j, other)| {
-                            (i != j && rock.hitbox().intersects(other.hitbox())).then(|| j)
+                            if i != j {
+                                rock.hitbox()
+                                    .intersects(&other.hitbox())
+                                    .map(|position| (j, position))
+                            } else {
+                                None
+                            }
                         })
                         .collect(),
                 )
             })
             .collect();
 
-        rock_collision_map.iter().for_each(|(i, js)| {
-            js.iter().for_each(|j| {
+        for (i, js) in rock_collision_map.iter() {
+            for (j, position) in js.iter() {
                 let other = &rocks[*j];
-                let position = other.position().clone();
-                let velocity = other.velocity().clone();
+                let collision = Collision::builder()
+                    .other_objects_position(position.clone())
+                    .other_objects_velocity(other.velocity().clone())
+                    .other_objects_weight(other.weight())
+                    .build()
+                    .unwrap();
 
                 let rock = &mut rocks[*i];
-                rock.set_collision(Some(Collision::new(position, velocity)));
-            });
-        });
+                rock.push_collision(collision);
+            }
+        }
 
         //
         // Check if ship has collided with rocks.
         //
-        rocks.iter().for_each(|rock| {
-            if ship.borrow().hitbox().intersects(rock.hitbox()) {
-                ship.borrow_mut().set_collision(Some(Collision::new(
-                    rock.position().clone(),
-                    rock.velocity().clone(),
-                )));
+        let hitbox = ship.borrow().hitbox();
+
+        for rock in rocks.iter_mut() {
+            if let Some(position) = hitbox.intersects(&rock.hitbox()) {
+                ship.borrow_mut().push_collision(
+                    Collision::builder()
+                        .other_objects_position(position)
+                        .other_objects_velocity(rock.velocity().clone())
+                        .other_objects_weight(rock.weight())
+                        .build()
+                        .unwrap(),
+                );
             }
-        });
+
+            if let Some(position) = rock.hitbox().intersects(&hitbox) {
+                let ship = ship.borrow();
+                rock.push_collision(
+                    Collision::builder()
+                        .other_objects_position(position)
+                        .other_objects_velocity(ship.velocity().clone())
+                        .other_objects_weight(ship.weight())
+                        .build()
+                        .unwrap(),
+                );
+            }
+        }
 
         //
         // Update state.
