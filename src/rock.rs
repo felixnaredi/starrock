@@ -6,8 +6,6 @@ use getset::{
 };
 use vecmath::{
     vec2_add,
-    vec2_dot,
-    vec2_scale,
     vec2_sub,
 };
 
@@ -15,6 +13,8 @@ use crate::{
     collision::{
         CircularHitbox,
         Collision,
+        ElasticCollision,
+        ElasticCollisionObject,
     },
     foreground,
     rock_shape::RockShape,
@@ -63,26 +63,22 @@ impl Rock
 
     pub fn update(&mut self)
     {
-        for collision in self.collisions.iter() {
-            let x_a = self.position;
-            let u_a = self.velocity;
-            let m_a = self.weight();
-
-            let x_b = collision.other_objects_position().clone();
-            let u_b = collision.other_objects_velocity().clone();
-            let m_b = *collision.other_objects_weight();
-
-            let dx = vec2_sub(x_a, x_b);
-            let nx = dx[0].powi(2) + dx[1].powi(2);
-            let du = vec2_sub(u_a, u_b);
-            let dot_ux = vec2_dot(du, dx);
-            let m = 2. * m_b / (m_a + m_b);
-
-            self.velocity = vec2_sub(u_a, vec2_scale(dx, m * dot_ux / nx));
-        }
+        self.velocity = self
+            .collisions
+            .iter()
+            .map(|collision| {
+                ElasticCollision::builder()
+                    .target(self)
+                    .other(collision)
+                    .build()
+                    .unwrap()
+                    .target_velocity_delta()
+            })
+            .fold(self.velocity, |velocity, delta| vec2_sub(velocity, delta));
 
         self.position = vec2_add(self.position, self.velocity);
         foreground::position_modulo(&mut self.position);
+
         self.collisions.clear();
     }
 
@@ -124,5 +120,23 @@ impl Rock
     pub fn weight(&self) -> f32
     {
         4. * self.area()
+    }
+}
+
+impl ElasticCollisionObject for Rock
+{
+    fn position(&self) -> [f32; 2]
+    {
+        self.position
+    }
+
+    fn velocity(&self) -> [f32; 2]
+    {
+        self.velocity
+    }
+
+    fn weight(&self) -> f32
+    {
+        self.weight()
     }
 }
