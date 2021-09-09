@@ -25,6 +25,7 @@ pub trait Matrix4x4: Sized
 
 pub struct Id;
 
+#[allow(dead_code)]
 impl Id
 {
     pub fn new() -> Id

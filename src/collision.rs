@@ -43,7 +43,6 @@ impl CircularHitbox
     pub fn intersects(&self, other: &CircularHitbox) -> Option<[f32; 2]>
     {
         let (x1, y1) = (self.position[0], self.position[1]);
-
         let (x2, y2) = (other.position[0], other.position[1]);
 
         let x2 = match x2 - x1 {
@@ -56,7 +55,7 @@ impl CircularHitbox
             delta if delta > 1.5 => y2 - 3.,
             _ => y2,
         };
-        
+
         let x = x2 - x1;
         let y = y2 - y1;
         (self.radius + other.radius > (x * x + y * y).sqrt()).then(|| [x2, y2])

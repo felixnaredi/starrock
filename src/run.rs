@@ -5,6 +5,11 @@ use std::{
     rc::Rc,
 };
 
+use vecmath::{
+    vec2_add,
+    vec2_mul,
+    vec2_scale,
+};
 use wasm_bindgen::{
     prelude::*,
     JsCast,
@@ -13,6 +18,8 @@ use web_sys::WebGlRenderingContext;
 
 use crate::{
     background::Background,
+    bullet::Bullet,
+    bullet_renderer::BulletRenderer,
     collision::Collision,
     context::{
         Context,
@@ -123,6 +130,14 @@ pub fn run() -> Result<(), JsValue>
     );
 
     // ---------------------------------------------------------------------------------------------
+    // Bullets.
+    // ---------------------------------------------------------------------------------------------
+    let mut bullets = Vec::new();
+    let mut bullet_countdown = 0;
+
+    let bullet_renderer = BulletRenderer::new(&context)?;
+
+    // ---------------------------------------------------------------------------------------------
     // Foreground renderer.
     // ---------------------------------------------------------------------------------------------
     let foreground_renderer = ForegroundRenderer::new(&context)?;
@@ -142,6 +157,26 @@ pub fn run() -> Result<(), JsValue>
                 'a' => ship.borrow_mut().accelerate_yaw_rotation(PI / 77.),
                 's' => ship.borrow_mut().accelerate_forward(-0.0015),
                 'd' => ship.borrow_mut().accelerate_yaw_rotation(-PI / 77.),
+                ' ' => {
+                    if bullet_countdown == 0 {
+                        let ship = ship.borrow();
+                        let direction = [ship.yaw().cos(), ship.yaw().sin()];
+                        let position =
+                            vec2_add(*ship.position(), vec2_mul(direction, *ship.size()));
+                        let velocity = vec2_scale(direction, 0.040);
+
+                        bullets.push(
+                            Bullet::builder()
+                                .position(position)
+                                .velocity(velocity)
+                                .size([0.0750, 0.0075])
+                                .build()
+                                .unwrap(),
+                        );
+
+                        bullet_countdown = 30;
+                    }
+                }
                 _ => (),
             }
         }
@@ -220,8 +255,13 @@ pub fn run() -> Result<(), JsValue>
         //
         // Update state.
         //
+        bullets.iter_mut().for_each(Bullet::update);
         rocks.iter_mut().for_each(Rock::update);
         ship.borrow_mut().update();
+
+        if bullet_countdown > 0 {
+            bullet_countdown -= 1;
+        }
 
         //
         // Render.
@@ -249,9 +289,13 @@ pub fn run() -> Result<(), JsValue>
 
             gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
-            rocks
-                .iter()
-                .for_each(|rock| rock_renderer.render(&context, rock));
+            for rock in rocks.iter() {
+                rock_renderer.render(&context, rock);
+            }
+
+            for bullet in bullets.iter() {
+                bullet_renderer.render(&context, bullet);
+            }
 
             ship_renderer.render(&context, &ship.borrow());
         });

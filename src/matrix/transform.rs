@@ -1,7 +1,6 @@
-use crate::matrix::{
-    Id,
-    Matrix4x4,
-};
+use vecmath::vec2_normalized;
+
+use crate::matrix::Matrix4x4;
 
 fn unwrap3_or(x: Option<f32>, y: Option<f32>, z: Option<f32>, value: f32) -> (f32, f32, f32)
 {
@@ -101,7 +100,8 @@ impl Matrix4x4 for TranslateBuilder
 #[builder(build_fn(skip))]
 pub struct Rotate
 {
-    radians: f32,
+    cos: f32,
+    sin: f32,
 }
 
 impl Rotate
@@ -112,21 +112,35 @@ impl Rotate
     }
 }
 
+impl RotateBuilder
+{
+    pub fn radians(self, radians: f32) -> RotateBuilder
+    {
+        self.cos(radians.cos()).sin(radians.sin())
+    }
+
+    pub fn normalized_vec2(self, vector: [f32; 2]) -> RotateBuilder
+    {
+        self.cos(vector[0]).sin(vector[1])
+    }
+
+    pub fn vec2(self, vector: [f32; 2]) -> RotateBuilder
+    {
+        self.normalized_vec2(vec2_normalized(vector))
+    }
+}
+
 impl Matrix4x4 for RotateBuilder
 {
     fn into_matrix(self) -> [[f32; 4]; 4]
     {
-        if let Some(radians) = self.radians {
-            let c = radians.cos();
-            let s = radians.sin();
-            [
-                [c, s, 0., 0.],
-                [-s, c, 0., 0.],
-                [0., 0., 1., 0.],
-                [0., 0., 0., 1.],
-            ]
-        } else {
-            Id::new().into_matrix()
-        }
+        let c = self.cos.unwrap_or(1.);
+        let s = self.sin.unwrap_or(0.);
+        [
+            [c, s, 0., 0.],
+            [-s, c, 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.],
+        ]
     }
 }

@@ -30,6 +30,11 @@ impl KeyboardEventBus
             let keys_held_down = Rc::downgrade(&keys_held_down);
             move |event: KeyboardEvent| {
                 keys_held_down.upgrade().map(|keys_held_down| {
+                    // TODO:
+                    //   There should be some kind of mechanic controlling whether or not an event
+                    //   should prevent default.
+                    event.prevent_default();
+
                     event
                         .key()
                         .chars()
@@ -50,6 +55,11 @@ impl KeyboardEventBus
             let keys_held_down = Rc::downgrade(&keys_held_down);
             move |event: KeyboardEvent| {
                 keys_held_down.upgrade().map(|keys_held_down| {
+                    // TODO:
+                    //   There should be some kind of mechanic controlling whether or not an event
+                    //   should prevent default.
+                    event.prevent_default();
+
                     event
                         .key()
                         .chars()
