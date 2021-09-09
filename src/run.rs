@@ -25,14 +25,8 @@ use crate::{
     rock::Rock,
     rock_renderer::RockRenderer,
     rock_spawner::SpawnRandomizedRocksAnywhere,
-    ship::{
-        Ship,
-        ShipDescriptorBuilder,
-    },
-    ship_renderer::{
-        ShipRenderer,
-        ShipRendererDescriptorBuilder,
-    },
+    ship::Ship,
+    ship_renderer::ShipRenderer,
 };
 
 #[wasm_bindgen]
@@ -80,25 +74,19 @@ pub fn run() -> Result<(), JsValue>
     // Initialize ship.
     // ---------------------------------------------------------------------------------------------
 
-    let ship = Rc::new(RefCell::new(Ship::new(
-        &ShipDescriptorBuilder::default()
+    let ship = Rc::new(RefCell::new(
+        Ship::builder()
             .position([2., 3. / 2.])
-            //.position([0., 0.])
             .size([0.075, 0.075])
-            // .size([0.275, 0.275])
+            .weight(5. * 10e-3)
             .yaw(PI / 4.)
-            //.yaw(0.)
-            .build()
-            .unwrap(),
-    )));
-    let ship_renderer = ShipRenderer::new(
-        &context,
-        &ShipRendererDescriptorBuilder::default()
             .tail_x(-1. / 9.)
             .wing_angle(23. / 36. * PI)
             .build()
-            .unwrap(),
-    )?;
+            .map_err(|error| format!("{}", error))?,
+    ));
+
+    let ship_renderer = ShipRenderer::new(&context, &ship.borrow())?;
 
     // ---------------------------------------------------------------------------------------------
     // Initialize rocks.
@@ -222,7 +210,7 @@ pub fn run() -> Result<(), JsValue>
                     Collision::builder()
                         .other_objects_position(position)
                         .other_objects_velocity(ship.velocity().clone())
-                        .other_objects_weight(ship.weight())
+                        .other_objects_weight(*ship.weight())
                         .build()
                         .unwrap(),
                 );

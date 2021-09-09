@@ -18,15 +18,7 @@ use crate::{
     foreground,
 };
 
-#[derive(Builder)]
-pub struct ShipDescriptor
-{
-    size: [f32; 2],
-    position: [f32; 2],
-    yaw: f32,
-}
-
-#[derive(Getters, Setters)]
+#[derive(Builder, Getters, Setters)]
 pub struct Ship
 {
     #[getset(get = "pub")]
@@ -36,30 +28,35 @@ pub struct Ship
     position: [f32; 2],
 
     #[getset(get = "pub")]
-    velocity: [f32; 2],
+    weight: f32,
 
     #[getset(get = "pub")]
     yaw: f32,
 
     #[getset(get = "pub")]
+    tail_x: f32,
+
+    #[getset(get = "pub")]
+    wing_angle: f32,
+
+    #[getset(get = "pub")]
+    #[builder(default = "[0., 0.]")]
+    velocity: [f32; 2],
+
+    #[getset(get = "pub")]
+    #[builder(default = "0.")]
     yaw_delta: f32,
 
-    #[getset(get = "pub", set = "pub")]
+    #[getset(get = "pub")]
+    #[builder(default = "Vec::new()")]
     collisions: Vec<Collision>,
 }
 
 impl Ship
 {
-    pub fn new(descriptor: &ShipDescriptor) -> Ship
+    pub fn builder() -> ShipBuilder
     {
-        Ship {
-            position: descriptor.position,
-            size: descriptor.size,
-            velocity: [0., 0.],
-            yaw: descriptor.yaw,
-            yaw_delta: 0.,
-            collisions: Vec::new(),
-        }
+        ShipBuilder::default()
     }
 
     pub fn accelerate_yaw_rotation(&mut self, amount: f32)
@@ -106,11 +103,6 @@ impl Ship
         CircularHitbox::new(self.position.clone(), radius)
     }
 
-    pub fn weight(&self) -> f32
-    {
-        1. * self.size[0].min(self.size[1])
-    }
-
     pub fn push_collision(&mut self, collision: Collision)
     {
         self.collisions.push(collision);
@@ -131,6 +123,6 @@ impl ElasticCollisionObject for Ship
 
     fn weight(&self) -> f32
     {
-        self.weight()
+        *self.weight()
     }
 }

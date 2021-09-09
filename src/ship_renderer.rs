@@ -17,13 +17,6 @@ use crate::{
     ship::Ship,
 };
 
-#[derive(Builder)]
-pub struct ShipRendererDescriptor
-{
-    wing_angle: f32,
-    tail_x: f32,
-}
-
 /// Renderer for ships.
 pub struct ShipRenderer
 {
@@ -34,10 +27,7 @@ pub struct ShipRenderer
 impl ShipRenderer
 {
     /// Creates a new `ShipRenderer`.
-    pub fn new(
-        context: &WebGlRenderingContext,
-        descriptor: &ShipRendererDescriptor,
-    ) -> Result<ShipRenderer, String>
+    pub fn new(context: &WebGlRenderingContext, ship: &Ship) -> Result<ShipRenderer, String>
     {
         //
         // Create program.
@@ -51,7 +41,7 @@ impl ShipRenderer
         //
         // Initialize vertex buffer.
         //
-        let r = descriptor.wing_angle;
+        let r = ship.wing_angle();
         let vertex_buffer = gl::make_static_draw_array_buffer_f32(
             context,
             vec![
@@ -64,11 +54,11 @@ impl ShipRenderer
                 r.sin(),
                 0.0,
                 // 2
-                descriptor.tail_x,
+                *ship.tail_x(),
                 0.0,
                 0.0,
                 // 3
-                descriptor.tail_x,
+                *ship.tail_x(),
                 0.0,
                 0.0,
                 // 4

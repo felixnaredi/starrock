@@ -5,7 +5,7 @@ use vecmath::{
     vec2_sub,
 };
 
-#[derive(Builder, Debug, Getters)]
+#[derive(Builder, Clone, Debug, Getters)]
 pub struct Collision
 {
     #[get = "pub"]
@@ -56,6 +56,7 @@ impl CircularHitbox
             delta if delta > 1.5 => y2 - 3.,
             _ => y2,
         };
+        
         let x = x2 - x1;
         let y = y2 - y1;
         (self.radius + other.radius > (x * x + y * y).sqrt()).then(|| [x2, y2])
