@@ -18,7 +18,10 @@ use web_sys::WebGlRenderingContext;
 
 use crate::{
     background::Background,
-    bullet::Bullet,
+    bullet::{
+        Bullet,
+        UpdateBulletEvent,
+    },
     bullet_renderer::BulletRenderer,
     collision::Collision,
     context::{
@@ -133,7 +136,7 @@ pub fn run() -> Result<(), JsValue>
     // Bullets.
     // ---------------------------------------------------------------------------------------------
     let mut bullets = Vec::new();
-    let mut bullet_countdown = 0;
+    let mut ship_fire_bullet_countdown = 0;
 
     let bullet_renderer = BulletRenderer::new(&context)?;
 
@@ -158,7 +161,7 @@ pub fn run() -> Result<(), JsValue>
                 's' => ship.borrow_mut().accelerate_forward(-0.0015),
                 'd' => ship.borrow_mut().accelerate_yaw_rotation(-PI / 77.),
                 ' ' => {
-                    if bullet_countdown == 0 {
+                    if ship_fire_bullet_countdown == 0 {
                         let ship = ship.borrow();
                         let direction = [ship.yaw().cos(), ship.yaw().sin()];
                         let position =
@@ -170,11 +173,12 @@ pub fn run() -> Result<(), JsValue>
                                 .position(position)
                                 .velocity(velocity)
                                 .size([0.0750, 0.0075])
+                                .countdown(180)
                                 .build()
                                 .unwrap(),
                         );
 
-                        bullet_countdown = 30;
+                        ship_fire_bullet_countdown = 30;
                     }
                 }
                 _ => (),
@@ -255,12 +259,24 @@ pub fn run() -> Result<(), JsValue>
         //
         // Update state.
         //
-        bullets.iter_mut().for_each(Bullet::update);
+        let mut countdown_finished = Vec::new();
+
+        for (i, bullet) in bullets.iter_mut().enumerate() {
+            match bullet.update() {
+                Some(UpdateBulletEvent::CountdownFinished) => countdown_finished.push(i),
+                _ => (),
+            }
+        }
+
+        for i in countdown_finished.into_iter() {
+            bullets.remove(i);
+        }
+
         rocks.iter_mut().for_each(Rock::update);
         ship.borrow_mut().update();
 
-        if bullet_countdown > 0 {
-            bullet_countdown -= 1;
+        if ship_fire_bullet_countdown > 0 {
+            ship_fire_bullet_countdown -= 1;
         }
 
         //
