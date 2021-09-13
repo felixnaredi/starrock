@@ -75,13 +75,15 @@ impl Ship
         self.velocity = self
             .collisions
             .iter()
-            .map(|collision| {
-                ElasticCollision::builder()
-                    .target(self)
-                    .other(collision)
-                    .build()
-                    .unwrap()
-                    .target_velocity_delta()
+            .map(|collision| match collision {
+                Collision::Rock(other) | Collision::Bullet(other) | Collision::Ship(other) => {
+                    ElasticCollision::builder()
+                        .target(self)
+                        .other(other)
+                        .build()
+                        .unwrap()
+                        .target_velocity_delta()
+                }
             })
             .fold(self.velocity, |velocity, delta| vec2_sub(velocity, delta));
 

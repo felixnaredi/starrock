@@ -20,6 +20,13 @@ use crate::{
     rock_shape::RockShape,
 };
 
+pub enum UpdateRockEvent
+{
+    HitByRock,
+    HitByShip,
+    HitByBullet,
+}
+
 #[derive(Builder)]
 pub struct RockDescriptor
 {
@@ -61,25 +68,40 @@ impl Rock
         }
     }
 
-    pub fn update(&mut self)
+    pub fn update(&mut self) -> Option<UpdateRockEvent>
     {
+        use Collision::*;
+        use UpdateRockEvent::*;
+
         self.velocity = self
             .collisions
             .iter()
-            .map(|collision| {
-                ElasticCollision::builder()
+            .map(|collision| match collision {
+                Rock(other) | Bullet(other) | Ship(other) => ElasticCollision::builder()
                     .target(self)
-                    .other(collision)
+                    .other(other)
                     .build()
                     .unwrap()
-                    .target_velocity_delta()
+                    .target_velocity_delta(),
             })
             .fold(self.velocity, |velocity, delta| vec2_sub(velocity, delta));
 
         self.position = vec2_add(self.position, self.velocity);
         foreground::position_modulo(&mut self.position);
 
+        let event =
+            self.collisions
+                .iter()
+                .fold(None, |event, collision| match (&event, collision) {
+                    (Some(HitByBullet), _) => Some(HitByBullet),
+                    (_, Bullet(_)) => Some(HitByBullet),
+                    (Some(HitByShip), _) => Some(HitByShip),
+                    (_, Ship(_)) => Some(HitByShip),
+                    (_, Rock(_)) => Some(HitByRock),
+                });
+
         self.collisions.clear();
+        event
     }
 
     pub fn push_collision(&mut self, collision: Collision)

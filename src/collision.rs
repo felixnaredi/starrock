@@ -5,24 +5,32 @@ use vecmath::{
     vec2_sub,
 };
 
-#[derive(Builder, Clone, Debug, Getters)]
-pub struct Collision
+#[derive(Clone, Debug)]
+pub enum Collision
 {
-    #[get = "pub"]
-    other_objects_position: [f32; 2],
-
-    #[get = "pub"]
-    other_objects_velocity: [f32; 2],
-
-    #[get = "pub"]
-    other_objects_weight: f32,
+    Rock(OtherCollisionObject),
+    Ship(OtherCollisionObject),
+    Bullet(OtherCollisionObject),
 }
 
-impl Collision
+#[derive(Builder, Clone, Debug, Getters)]
+pub struct OtherCollisionObject
 {
-    pub fn builder() -> CollisionBuilder
+    #[get = "pub"]
+    position: [f32; 2],
+
+    #[get = "pub"]
+    velocity: [f32; 2],
+
+    #[get = "pub"]
+    weight: f32,
+}
+
+impl OtherCollisionObject
+{
+    pub fn builder() -> OtherCollisionObjectBuilder
     {
-        CollisionBuilder::default()
+        OtherCollisionObjectBuilder::default()
     }
 }
 
@@ -121,20 +129,20 @@ impl ElasticCollisionBuilder
     }
 }
 
-impl ElasticCollisionObject for Collision
+impl ElasticCollisionObject for OtherCollisionObject
 {
     fn position(&self) -> [f32; 2]
     {
-        self.other_objects_position
+        self.position
     }
 
     fn velocity(&self) -> [f32; 2]
     {
-        self.other_objects_velocity
+        self.velocity
     }
 
     fn weight(&self) -> f32
     {
-        self.other_objects_weight
+        self.weight
     }
 }

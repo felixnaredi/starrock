@@ -23,7 +23,10 @@ use crate::{
         UpdateBulletEvent,
     },
     bullet_renderer::BulletRenderer,
-    collision::Collision,
+    collision::{
+        Collision,
+        OtherCollisionObject,
+    },
     context::{
         Context,
         ContextDescriptorBuilder,
@@ -32,7 +35,10 @@ use crate::{
     foreground_renderer::ForegroundRenderer,
     keyboard_event_bus::KeyboardEventBus,
     matrix::OrthographicProjection,
-    rock::Rock,
+    rock::{
+        Rock,
+        UpdateRockEvent,
+    },
     rock_renderer::RockRenderer,
     rock_spawner::SpawnRandomizedRocksAnywhere,
     ship::Ship,
@@ -214,15 +220,15 @@ pub fn run() -> Result<(), JsValue>
         for (i, js) in rock_collision_map.iter() {
             for (j, position) in js.iter() {
                 let other = &rocks[*j];
-                let collision = Collision::builder()
-                    .other_objects_position(position.clone())
-                    .other_objects_velocity(other.velocity().clone())
-                    .other_objects_weight(other.weight())
+                let other = OtherCollisionObject::builder()
+                    .position(position.clone())
+                    .velocity(other.velocity().clone())
+                    .weight(other.weight())
                     .build()
                     .unwrap();
 
                 let rock = &mut rocks[*i];
-                rock.push_collision(collision);
+                rock.push_collision(Collision::Rock(other));
             }
         }
 
@@ -233,26 +239,71 @@ pub fn run() -> Result<(), JsValue>
 
         for rock in rocks.iter_mut() {
             if let Some(position) = hitbox.intersects(&rock.hitbox()) {
-                ship.borrow_mut().push_collision(
-                    Collision::builder()
-                        .other_objects_position(position)
-                        .other_objects_velocity(rock.velocity().clone())
-                        .other_objects_weight(rock.weight())
+                ship.borrow_mut().push_collision(Collision::Rock(
+                    OtherCollisionObject::builder()
+                        .position(position)
+                        .velocity(rock.velocity().clone())
+                        .weight(rock.weight())
                         .build()
                         .unwrap(),
-                );
+                ));
             }
 
             if let Some(position) = rock.hitbox().intersects(&hitbox) {
                 let ship = ship.borrow();
-                rock.push_collision(
-                    Collision::builder()
-                        .other_objects_position(position)
-                        .other_objects_velocity(ship.velocity().clone())
-                        .other_objects_weight(*ship.weight())
+                rock.push_collision(Collision::Ship(
+                    OtherCollisionObject::builder()
+                        .position(position)
+                        .velocity(ship.velocity().clone())
+                        .weight(*ship.weight())
                         .build()
                         .unwrap(),
-                );
+                ));
+            }
+        }
+
+        //
+        // Check if bullets has collided with rocks.
+        //
+        let bullet_collision_indices: HashMap<_, Vec<_>> = bullets
+            .iter()
+            .enumerate()
+            .map(|(i, bullet)| {
+                (
+                    i,
+                    rocks
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(j, rock)| {
+                            bullet.hitbox().intersects(&rock.hitbox()).map(|_| j)
+                        })
+                        .collect(),
+                )
+            })
+            .collect();
+
+        for (i, js) in bullet_collision_indices.into_iter() {
+            let bullet = &mut bullets[i];
+
+            for j in js {
+                let rock = &mut rocks[j];
+
+                bullet.push_collision(Collision::Rock(
+                    OtherCollisionObject::builder()
+                        .position(bullet.hitbox().intersects(&rock.hitbox()).unwrap())
+                        .velocity(rock.velocity().clone())
+                        .weight(rock.weight().clone())
+                        .build()
+                        .unwrap(),
+                ));
+                rock.push_collision(Collision::Bullet(
+                    OtherCollisionObject::builder()
+                        .position(rock.hitbox().intersects(&bullet.hitbox()).unwrap())
+                        .velocity(bullet.velocity().clone())
+                        .weight(0.)
+                        .build()
+                        .unwrap(),
+                ));
             }
         }
 
@@ -260,19 +311,35 @@ pub fn run() -> Result<(), JsValue>
         // Update state.
         //
         let mut countdown_finished = Vec::new();
+        let mut hit_by_rock = Vec::new();
 
         for (i, bullet) in bullets.iter_mut().enumerate() {
             match bullet.update() {
                 Some(UpdateBulletEvent::CountdownFinished) => countdown_finished.push(i),
+                Some(UpdateBulletEvent::HitByRock) => hit_by_rock.push(i),
                 _ => (),
             }
         }
 
-        for i in countdown_finished.into_iter() {
+        for i in countdown_finished
+            .into_iter()
+            .chain(hit_by_rock.into_iter())
+        {
             bullets.remove(i);
         }
 
-        rocks.iter_mut().for_each(Rock::update);
+        let mut rocks_hit_by_bullets = Vec::new();
+
+        for (i, rock) in rocks.iter_mut().enumerate() {
+            match rock.update() {
+                Some(UpdateRockEvent::HitByBullet) => rocks_hit_by_bullets.push(i),
+                _ => (),
+            }
+        }
+        for i in rocks_hit_by_bullets.into_iter() {
+            rocks.remove(i);
+        }
+
         ship.borrow_mut().update();
 
         if ship_fire_bullet_countdown > 0 {
