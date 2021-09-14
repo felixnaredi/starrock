@@ -2,6 +2,7 @@
 extern crate derive_builder;
 
 mod background;
+mod buffer;
 mod bullet;
 mod bullet_renderer;
 mod collision;

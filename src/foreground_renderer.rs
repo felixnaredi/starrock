@@ -11,6 +11,10 @@ use web_sys::{
 };
 
 use crate::{
+    buffer::{
+        BufferUsage,
+        ElementArrayBuffer,
+    },
     context::Context,
     gl,
     matrix::{
@@ -27,7 +31,7 @@ pub struct ForegroundRenderer
     framebuffer: WebGlFramebuffer,
     program: WebGlProgram,
     vertex_buffer: WebGlBuffer,
-    index_buffer: WebGlBuffer,
+    index_buffer: ElementArrayBuffer,
 }
 
 impl ForegroundRenderer
@@ -146,14 +150,16 @@ impl ForegroundRenderer
             .collect(),
         )?;
 
-        let index_buffer = gl::make_static_draw_element_array_buffer_i16(
+        let mut index_buffer = ElementArrayBuffer::new(gl)?;
+        index_buffer.set_data(
             gl,
-            vec![
+            BufferUsage::StaticDraw,
+            &vec![
                 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15,
                 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23, 24, 25, 26, 24, 26, 27, 28, 29, 30,
                 28, 30, 31, 32, 33, 34, 32, 34, 35,
             ],
-        )?;
+        );
 
         //
         // Create framebuffer.
@@ -260,14 +266,11 @@ impl ForegroundRenderer
         // Draw.
         //
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&self.texture));
-        gl.bind_buffer(
-            WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
-            Some(&self.index_buffer),
-        );
+        self.index_buffer.bind(gl);
 
         gl.draw_elements_with_i32(
             WebGlRenderingContext::TRIANGLES,
-            54,
+            self.index_buffer.len().unwrap() as i32,
             WebGlRenderingContext::UNSIGNED_SHORT,
             0,
         );
@@ -275,7 +278,7 @@ impl ForegroundRenderer
         //
         // Clean-up.
         //
-        gl.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER, None);
+        self.index_buffer.unbind(gl);
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
         gl.use_program(None);
     }
