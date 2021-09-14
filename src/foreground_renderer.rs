@@ -7,16 +7,23 @@ use web_sys::{
     WebGlProgram,
     WebGlRenderingContext,
     WebGlShader,
-    WebGlTexture,
 };
 
 use crate::{
-    buffer::{
-        BufferUsage,
-        ElementArrayBuffer,
-    },
     context::Context,
-    gl,
+    gl::{
+        self,
+        buffer::{
+            BufferUsage,
+            ElementArrayBuffer,
+        },
+        texture::{
+            Texture2D,
+            TextureMagnificationFilter,
+            TextureMinificationFilter,
+            TextureWrappingFunction,
+        },
+    },
     matrix::{
         Matrix4x4,
         OrthographicProjection,
@@ -27,7 +34,7 @@ use crate::{
 /// Renders the foreground.
 pub struct ForegroundRenderer
 {
-    texture: WebGlTexture,
+    texture: Texture2D,
     framebuffer: WebGlFramebuffer,
     program: WebGlProgram,
     vertex_buffer: WebGlBuffer,
@@ -49,49 +56,23 @@ impl ForegroundRenderer
         //
         // Create and setup texture.
         //
-        let texture = gl.create_texture().ok_or("failed to create texture")?;
-        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&texture));
-
-        let level = 0;
-        let internal_format = WebGlRenderingContext::RGBA as i32;
+        let mut texture = Texture2D::new(gl)?;
         let (width, height) = calculate_texture_size(context);
-        let border = 0;
-        let type_ = WebGlRenderingContext::UNSIGNED_BYTE;
-        let format = WebGlRenderingContext::RGBA;
-        gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view(
-            WebGlRenderingContext::TEXTURE_2D,
-            level,
-            internal_format,
-            width,
-            height,
-            border,
-            format,
-            type_,
-            None,
-        )?;
 
-        gl.tex_parameteri(
-            WebGlRenderingContext::TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_MIN_FILTER,
-            WebGlRenderingContext::LINEAR as i32,
-        );
-        gl.tex_parameteri(
-            WebGlRenderingContext::TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_MAG_FILTER,
-            WebGlRenderingContext::LINEAR as i32,
-        );
-        gl.tex_parameteri(
-            WebGlRenderingContext::TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_WRAP_S,
-            WebGlRenderingContext::CLAMP_TO_EDGE as i32,
-        );
-        gl.tex_parameteri(
-            WebGlRenderingContext::TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_WRAP_T,
-            WebGlRenderingContext::CLAMP_TO_EDGE as i32,
-        );
-
-        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
+        texture
+            .specification()
+            .level(0)
+            .internal_format(WebGlRenderingContext::RGBA as i32)
+            .width(width)
+            .height(height)
+            .border(0)
+            .format(WebGlRenderingContext::RGBA)
+            .type_(WebGlRenderingContext::UNSIGNED_BYTE)
+            .min_filter(TextureMinificationFilter::Linear)
+            .mag_filter(TextureMagnificationFilter::Linear)
+            .wrap_s(TextureWrappingFunction::ClampToEdge)
+            .wrap_t(TextureWrappingFunction::ClampToEdge)
+            .update(gl)?;
 
         //
         // Create vertex buffer and index buffer.
@@ -187,7 +168,7 @@ impl ForegroundRenderer
             WebGlRenderingContext::FRAMEBUFFER,
             WebGlRenderingContext::COLOR_ATTACHMENT0,
             WebGlRenderingContext::TEXTURE_2D,
-            Some(&self.texture),
+            Some(self.texture.texture()),
             0,
         );
 
@@ -265,7 +246,10 @@ impl ForegroundRenderer
         //
         // Draw.
         //
-        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&self.texture));
+        gl.bind_texture(
+            WebGlRenderingContext::TEXTURE_2D,
+            Some(self.texture.texture()),
+        );
         self.index_buffer.bind(gl);
 
         gl.draw_elements_with_i32(

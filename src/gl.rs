@@ -5,6 +5,9 @@ use web_sys::{
     WebGlShader,
 };
 
+pub mod buffer;
+pub mod texture;
+
 pub fn compile_vertex_shader(
     context: &WebGlRenderingContext,
     source: &str,

@@ -71,11 +71,9 @@ impl ElementArrayBuffer
         self.bind(gl);
 
         unsafe {
-            let view = T::view(&data);
-
             gl.buffer_data_with_array_buffer_view(
                 WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
-                &view.into(),
+                &T::view(&data).into(),
                 usage as u32,
             )
         }
