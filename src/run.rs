@@ -265,45 +265,26 @@ pub fn run() -> Result<(), JsValue>
         //
         // Check if bullets has collided with rocks.
         //
-        let bullet_collision_indices: HashMap<_, Vec<_>> = bullets
-            .iter()
-            .enumerate()
-            .map(|(i, bullet)| {
-                (
-                    i,
-                    rocks
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(j, rock)| {
-                            bullet.hitbox().intersects(&rock.hitbox()).map(|_| j)
-                        })
-                        .collect(),
-                )
-            })
-            .collect();
-
-        for (i, js) in bullet_collision_indices.into_iter() {
-            let bullet = &mut bullets[i];
-
-            for j in js {
-                let rock = &mut rocks[j];
-
-                bullet.push_collision(Collision::Rock(
-                    OtherCollisionObject::builder()
-                        .position(bullet.hitbox().intersects(&rock.hitbox()).unwrap())
-                        .velocity(rock.velocity().clone())
-                        .weight(rock.weight().clone())
-                        .build()
-                        .unwrap(),
-                ));
-                rock.push_collision(Collision::Bullet(
-                    OtherCollisionObject::builder()
-                        .position(rock.hitbox().intersects(&bullet.hitbox()).unwrap())
-                        .velocity(bullet.velocity().clone())
-                        .weight(0.)
-                        .build()
-                        .unwrap(),
-                ));
+        for bullet in bullets.iter_mut() {
+            for rock in rocks.iter_mut() {
+                if let Some(position) = bullet.hitbox().intersects(&rock.hitbox()) {
+                    bullet.push_collision(Collision::Rock(
+                        OtherCollisionObject::builder()
+                            .position(position)
+                            .velocity(rock.velocity().clone())
+                            .weight(rock.weight())
+                            .build()
+                            .unwrap(),
+                    ));
+                    rock.push_collision(Collision::Bullet(
+                        OtherCollisionObject::builder()
+                            .position(rock.hitbox().intersects(&bullet.hitbox()).unwrap())
+                            .velocity(bullet.velocity().clone())
+                            .weight(0.)
+                            .build()
+                            .unwrap(),
+                    ));
+                }
             }
         }
 
