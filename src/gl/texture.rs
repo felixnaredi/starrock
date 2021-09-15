@@ -5,7 +5,7 @@ use web_sys::{
     WebGlTexture,
 };
 
-const TEXTURE_2D: u32 = WebGlRenderingContext::TEXTURE_2D;
+type GL = WebGlRenderingContext;
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
@@ -23,9 +23,9 @@ impl TextureWrappingFunction
         use TextureWrappingFunction::*;
 
         match self {
-            Repeat => WebGlRenderingContext::REPEAT,
-            ClampToEdge => WebGlRenderingContext::CLAMP_TO_EDGE,
-            MirroredRepeat => WebGlRenderingContext::MIRRORED_REPEAT,
+            Repeat => GL::REPEAT,
+            ClampToEdge => GL::CLAMP_TO_EDGE,
+            MirroredRepeat => GL::MIRRORED_REPEAT,
         }
     }
 }
@@ -45,8 +45,8 @@ impl TextureMagnificationFilter
         use TextureMagnificationFilter::*;
 
         match self {
-            Linear => WebGlRenderingContext::LINEAR,
-            Nearest => WebGlRenderingContext::NEAREST,
+            Linear => GL::LINEAR,
+            Nearest => GL::NEAREST,
         }
     }
 }
@@ -70,12 +70,12 @@ impl TextureMinificationFilter
         use TextureMinificationFilter::*;
 
         match self {
-            Linear => WebGlRenderingContext::LINEAR,
-            Nearest => WebGlRenderingContext::NEAREST,
-            NearestMipmapNearest => WebGlRenderingContext::NEAREST_MIPMAP_NEAREST,
-            LinearMipmapNearest => WebGlRenderingContext::LINEAR_MIPMAP_NEAREST,
-            NearestMipmapLinear => WebGlRenderingContext::NEAREST_MIPMAP_LINEAR,
-            LinearMipmapLinear => WebGlRenderingContext::LINEAR_MIPMAP_LINEAR,
+            Linear => GL::LINEAR,
+            Nearest => GL::NEAREST,
+            NearestMipmapNearest => GL::NEAREST_MIPMAP_NEAREST,
+            LinearMipmapNearest => GL::LINEAR_MIPMAP_NEAREST,
+            NearestMipmapLinear => GL::NEAREST_MIPMAP_LINEAR,
+            LinearMipmapLinear => GL::LINEAR_MIPMAP_LINEAR,
         }
     }
 }
@@ -97,7 +97,7 @@ pub struct Texture2DSpecification<'a>
     mag_filter: TextureMagnificationFilter,
     wrap_s: TextureWrappingFunction,
     wrap_t: TextureWrappingFunction,
-    pixels: Option<js_sys::Object>
+    pixels: Option<js_sys::Object>,
 }
 
 impl<'a> Texture2DSpecificationBuilder<'a>
@@ -110,7 +110,7 @@ impl<'a> Texture2DSpecificationBuilder<'a>
         texture.bind(gl);
 
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view(
-            TEXTURE_2D,
+            GL::TEXTURE_2D,
             self.level
                 .ok_or("Texture2DSpecification missing parameter 'level'")?,
             self.internal_format
@@ -128,34 +128,29 @@ impl<'a> Texture2DSpecificationBuilder<'a>
             self.pixels.flatten().as_ref(),
         )?;
 
-        gl.tex_parameteri(
-            TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_MIN_FILTER,
-            self.min_filter
-                .ok_or("Texture2DSpecification missing parameter 'min_filter'")?
-                .value() as i32,
-        );
-        gl.tex_parameteri(
-            TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_MAG_FILTER,
-            self.mag_filter
-                .ok_or("Texture2DSpecification missing parameter 'mag_filter'")?
-                .value() as i32,
-        );
-        gl.tex_parameteri(
-            TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_WRAP_S,
-            self.wrap_s
-                .ok_or("Texture2DSpecification missing parameter 'wrap_s'")?
-                .value() as i32,
-        );
-        gl.tex_parameteri(
-            TEXTURE_2D,
-            WebGlRenderingContext::TEXTURE_WRAP_T,
-            self.wrap_t
-                .ok_or("Texture2DSpecification missing parameter 'wrap_t'")?
-                .value() as i32,
-        );
+        if let Some(filter) = self.min_filter {
+            gl.tex_parameteri(
+                GL::TEXTURE_2D,
+                GL::TEXTURE_MIN_FILTER,
+                filter.value() as i32,
+            );
+        }
+
+        if let Some(filter) = self.mag_filter {
+            gl.tex_parameteri(
+                GL::TEXTURE_2D,
+                GL::TEXTURE_MAG_FILTER,
+                filter.value() as i32,
+            );
+        }
+
+        if let Some(wrapping) = self.wrap_s {
+            gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_WRAP_S, wrapping.value() as i32);
+        }
+
+        if let Some(wrapping) = self.wrap_t {
+            gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_WRAP_T, wrapping.value() as i32);
+        }
 
         texture.unbind(gl);
         Ok(())
@@ -180,12 +175,12 @@ impl Texture2D
 
     pub fn bind(&self, gl: &WebGlRenderingContext)
     {
-        gl.bind_texture(TEXTURE_2D, Some(&self.texture));
+        gl.bind_texture(GL::TEXTURE_2D, Some(&self.texture));
     }
 
     pub fn unbind(&self, gl: &WebGlRenderingContext)
     {
-        gl.bind_texture(TEXTURE_2D, None);
+        gl.bind_texture(GL::TEXTURE_2D, None);
     }
 
     pub fn specification(&mut self) -> Texture2DSpecificationBuilder
