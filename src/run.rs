@@ -41,6 +41,7 @@ use crate::{
     },
     rock_renderer::RockRenderer,
     rock_spawner::SpawnRandomizedRocksAnywhere,
+    run_loop::RunLoop,
     ship::Ship,
     ship_renderer::ShipRenderer,
 };
@@ -54,7 +55,7 @@ extern "C" {
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue>
 {
-    let context = init_context().unwrap();
+    let context = context().unwrap();
 
     // ---------------------------------------------------------------------------------------------
     // Initialize background.
@@ -156,10 +157,8 @@ pub fn run() -> Result<(), JsValue>
     // ---------------------------------------------------------------------------------------------
 
     let keyboard_event_bus = KeyboardEventBus::new()?;
-    let run_loop = Rc::new(RefCell::new(None));
-    let _run_loop = Rc::clone(&run_loop);
 
-    *run_loop.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+    let run_loop = RunLoop::new(move || {
         for key in keyboard_event_bus.keys_held_down() {
             match key {
                 'w' => ship.borrow_mut().accelerate_forward(0.0025),
@@ -364,11 +363,9 @@ pub fn run() -> Result<(), JsValue>
             ship_renderer.render(&context, &ship.borrow());
         });
         foreground_renderer.render(&context);
+    });
 
-        request_animation_frame(_run_loop.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut()>));
-
-    request_animation_frame(run_loop.borrow().as_ref().unwrap());
+    run_loop.start();
 
     Ok(())
 }
@@ -377,14 +374,7 @@ pub fn run() -> Result<(), JsValue>
 // Helper functions.
 // -------------------------------------------------------------------------------------------------
 
-fn request_animation_frame(f: &Closure<dyn FnMut()>)
-{
-    dom::window()
-        .request_animation_frame(f.as_ref().unchecked_ref())
-        .unwrap();
-}
-
-fn init_context() -> Result<WebGlRenderingContext, JsValue>
+fn context() -> Result<WebGlRenderingContext, JsValue>
 {
     let context = dom::canvas()?
         .get_context("webgl")?
