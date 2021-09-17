@@ -43,7 +43,7 @@ impl ShipGun
                 Bullet::builder()
                     .position(position)
                     .velocity(velocity)
-                    .size([0.0750, 0.0075])
+                    .size([0.0750, 0.0125])
                     .countdown(self.bullet_duration)
                     .build()
                     .unwrap(),

@@ -103,14 +103,22 @@ fn vertex_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, String>
         uniform mat4 world_matrix;
         uniform mat4 projection_matrix;
 
-        varying vec4 vertex_position;
+        varying float relative_x;
+        varying vec4 projected_position;
 
         void main()
         {
-            vec4 p0 = projection_matrix * world_matrix * position;
+            float x = position.x;
+            x = (x + 1.0) / 2.0;
 
-            vertex_position = p0;
-            gl_Position = p0;
+            vec4 p = position;
+            p.y *= (1.0 - x) * 0.5 + x;
+            p = projection_matrix * world_matrix * p;
+
+            relative_x = x;
+            projected_position = p;
+
+            gl_Position = p;
         }
         "#,
     )
@@ -125,18 +133,22 @@ fn fragment_shader(context: &WebGlRenderingContext) -> Result<WebGlShader, Strin
 
         precision mediump float;
 
-        varying vec4 vertex_position;
+        varying float relative_x;
+        varying vec4 projected_position;
 
         void main()
         {
-            vec4 d0 = vertex_position * vertex_position;
+            vec4 d0 = projected_position * projected_position;
             float d1 = sqrt(d0.x + d0.y + d0.z);
             float d2 = d1 * d1;
+
+            float x = relative_x;
+            float a = (1.0 - x) * 0.1 + x * 1.0;
 
             gl_FragColor = vec4(abs(sin(d2 * 17.0)) * 0.8,
                                 0.8,
                                 abs(cos(d2 * 29.0)) * 0.8,
-                                1.0);
+                                a);
         }
         "#,
     )
