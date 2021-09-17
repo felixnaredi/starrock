@@ -104,6 +104,10 @@ pub fn run() -> Result<(), JsValue>
         .fire_countdown_duration(20)
         .bullet_speed(0.050)
         .bullet_duration(120)
+        .boost_max_energy(100.)
+        .boost_cost(3.)
+        .boost_regeneracy(0.25)
+        .boost_multiplier(2.5)
         .build()
         .map_err(|error| format!("{}", error))?;
 
@@ -161,6 +165,8 @@ pub fn run() -> Result<(), JsValue>
     let keyboard_event_bus = KeyboardEventBus::new()?;
 
     let run_loop = RunLoop::new(move || {
+        ship_controller.set_boost(keyboard_event_bus.key_is_down('n'));
+
         for key in keyboard_event_bus.keys_held_down() {
             match key {
                 'w' => ship_controller.thrust_forward(),

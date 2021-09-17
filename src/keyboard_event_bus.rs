@@ -81,4 +81,9 @@ impl KeyboardEventBus
         let keys: Vec<char> = self.keys_held_down.borrow().iter().cloned().collect();
         keys.into_iter()
     }
+
+    pub fn key_is_down(&self, key: char) -> bool
+    {
+        self.keys_held_down.borrow().contains(&key)
+    }
 }
