@@ -81,7 +81,6 @@ impl TextureMinificationFilter
 }
 
 #[derive(Debug, Builder)]
-#[builder(build_fn(skip))]
 #[builder(pattern = "owned")]
 pub struct Texture2DSpecification<'a>
 {
@@ -93,10 +92,20 @@ pub struct Texture2DSpecification<'a>
     border: i32,
     format: u32,
     type_: u32,
-    min_filter: TextureMinificationFilter,
-    mag_filter: TextureMagnificationFilter,
-    wrap_s: TextureWrappingFunction,
-    wrap_t: TextureWrappingFunction,
+
+    #[builder(setter(strip_option), default)]
+    min_filter: Option<TextureMinificationFilter>,
+
+    #[builder(setter(strip_option), default)]
+    mag_filter: Option<TextureMagnificationFilter>,
+
+    #[builder(setter(strip_option), default)]
+    wrap_s: Option<TextureWrappingFunction>,
+
+    #[builder(setter(strip_option), default)]
+    wrap_t: Option<TextureWrappingFunction>,
+
+    #[builder(setter(strip_option), default)]
     pixels: Option<js_sys::Object>,
 }
 
@@ -104,31 +113,24 @@ impl<'a> Texture2DSpecificationBuilder<'a>
 {
     pub fn update(self, gl: &WebGlRenderingContext) -> Result<(), JsValue>
     {
-        let texture = self
-            .texture
-            .ok_or("Texture2DSpecification missing parameter 'texture'")?;
+        let specification = self.build().map_err(|error| format!("{}", error))?;
+
+        let texture = specification.texture;
         texture.bind(gl);
 
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view(
             GL::TEXTURE_2D,
-            self.level
-                .ok_or("Texture2DSpecification missing parameter 'level'")?,
-            self.internal_format
-                .ok_or("Texture2DSpecification missing parameter 'internal_format'")?,
-            self.width
-                .ok_or("Texture2DSpecification missing parameter 'width'")?,
-            self.height
-                .ok_or("Texture2DSpecification missing parameter 'height'")?,
-            self.border
-                .ok_or("Texture2DSpecification missing parameter 'border'")?,
-            self.format
-                .ok_or("Texture2DSpecification missing parameter 'format'")?,
-            self.type_
-                .ok_or("Texture2DSpecification missing parameter 'type_'")?,
-            self.pixels.flatten().as_ref(),
+            specification.level,
+            specification.internal_format,
+            specification.width,
+            specification.height,
+            specification.border,
+            specification.format,
+            specification.type_,
+            specification.pixels.as_ref(),
         )?;
 
-        if let Some(filter) = self.min_filter {
+        if let Some(filter) = specification.min_filter {
             gl.tex_parameteri(
                 GL::TEXTURE_2D,
                 GL::TEXTURE_MIN_FILTER,
@@ -136,7 +138,7 @@ impl<'a> Texture2DSpecificationBuilder<'a>
             );
         }
 
-        if let Some(filter) = self.mag_filter {
+        if let Some(filter) = specification.mag_filter {
             gl.tex_parameteri(
                 GL::TEXTURE_2D,
                 GL::TEXTURE_MAG_FILTER,
@@ -144,11 +146,11 @@ impl<'a> Texture2DSpecificationBuilder<'a>
             );
         }
 
-        if let Some(wrapping) = self.wrap_s {
+        if let Some(wrapping) = specification.wrap_s {
             gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_WRAP_S, wrapping.value() as i32);
         }
 
-        if let Some(wrapping) = self.wrap_t {
+        if let Some(wrapping) = specification.wrap_t {
             gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_WRAP_T, wrapping.value() as i32);
         }
 

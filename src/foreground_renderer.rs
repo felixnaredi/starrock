@@ -246,10 +246,7 @@ impl ForegroundRenderer
         //
         // Draw.
         //
-        gl.bind_texture(
-            WebGlRenderingContext::TEXTURE_2D,
-            Some(self.texture.texture()),
-        );
+        self.texture.bind(gl);
         self.index_buffer.bind(gl);
 
         gl.draw_elements_with_i32(
@@ -263,7 +260,7 @@ impl ForegroundRenderer
         // Clean-up.
         //
         self.index_buffer.unbind(gl);
-        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
+        self.texture.unbind(gl);
         gl.use_program(None);
     }
 }
