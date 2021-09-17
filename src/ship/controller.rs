@@ -3,17 +3,12 @@ use std::{
     rc::Weak,
 };
 
-use vecmath::{
-    vec2_add,
-    vec2_mul,
-    vec2_scale,
-};
-
 use crate::{
     bullet::Bullet,
     ship::{
         Ship,
         ShipBoost,
+        ShipGun,
     },
 };
 
@@ -27,19 +22,13 @@ pub struct ShipController
     energy_max: f32,
     energy_regeneracy: f32,
     boost: ShipBoost,
+    gun: ShipGun,
 
-    fire_countdown_duration: u32,
-    bullet_speed: f32,
-    bullet_duration: u32,
-
-    #[builder(setter(skip), default = "0.")]
+    #[builder(setter(skip), default = "self.energy_max.unwrap()")]
     energy: f32,
 
-    #[builder(setter(skip), default = "0.")]
+    #[builder(setter(skip), default = "1.")]
     boost_multiplier: f32,
-
-    #[builder(setter(skip), default = "0")]
-    fire_countdown: u32,
 }
 
 impl ShipController
@@ -83,29 +72,10 @@ impl ShipController
 
     pub fn fire_bullet(&mut self) -> Option<Bullet>
     {
-        if self.fire_countdown == 0 {
-            let ship = self.ship.upgrade()?;
-            let ship = ship.borrow();
-
-            self.fire_countdown = self.fire_countdown_duration;
-
-            let yaw = ship.yaw();
-            let direction = [yaw.cos(), yaw.sin()];
-            let position = vec2_add(*ship.position(), vec2_mul(direction, *ship.size()));
-            let velocity = vec2_scale(direction, self.bullet_speed);
-
-            Some(
-                Bullet::builder()
-                    .position(position)
-                    .velocity(velocity)
-                    .size([0.0750, 0.0075])
-                    .countdown(self.bullet_duration)
-                    .build()
-                    .unwrap(),
-            )
-        } else {
-            None
-        }
+        self.ship
+            .upgrade()
+            .map(|ship| self.gun.fire(&mut self.energy, &ship.borrow()))
+            .flatten()
     }
 
     pub fn set_boost(&mut self, state: bool)
@@ -116,12 +86,9 @@ impl ShipController
 
     pub fn update(&mut self)
     {
-        if self.fire_countdown > 0 {
-            self.fire_countdown -= 1;
-        }
-
         if self.energy < self.energy_max {
-            self.energy += self.energy_regeneracy;
+            self.energy = (self.energy + self.energy_regeneracy).min(self.energy_max);
         }
+        self.gun.update();
     }
 }

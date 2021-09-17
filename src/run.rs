@@ -38,6 +38,7 @@ use crate::{
         Ship,
         ShipBoost,
         ShipController,
+        ShipGun,
         ShipRenderer,
     },
 };
@@ -113,9 +114,15 @@ pub fn run() -> Result<(), JsValue>
                 .build()
                 .map_err(|error| format!("{}", error))?,
         )
-        .fire_countdown_duration(20)
-        .bullet_speed(0.050)
-        .bullet_duration(120)
+        .gun(
+            ShipGun::builder()
+                .bullet_duration(120)
+                .bullet_speed(0.05)
+                .energy_cost(15.)
+                .period(15)
+                .build()
+                .map_err(|error| format!("{}", error))?,
+        )
         .build()
         .map_err(|error| format!("{}", error))?;
 
