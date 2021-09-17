@@ -19,7 +19,5 @@ mod rock_spawner;
 mod run;
 mod run_loop;
 mod ship;
-mod ship_controller;
-mod ship_renderer;
 
 pub use run::run;

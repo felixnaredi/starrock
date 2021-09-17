@@ -34,9 +34,12 @@ use crate::{
     rock_renderer::RockRenderer,
     rock_spawner::SpawnRandomizedRocksAnywhere,
     run_loop::RunLoop,
-    ship::Ship,
-    ship_controller::ShipController,
-    ship_renderer::ShipRenderer,
+    ship::{
+        Ship,
+        ShipBoost,
+        ShipController,
+        ShipRenderer,
+    },
 };
 
 #[wasm_bindgen]
@@ -101,13 +104,18 @@ pub fn run() -> Result<(), JsValue>
         .forward_acceleration(0.0025)
         .backward_acceleration(0.0015)
         .yaw_acceleration(PI / 77.)
+        .energy_max(100.)
+        .energy_regeneracy(0.5)
+        .boost(
+            ShipBoost::builder()
+                .multiplier(2.5)
+                .cost(3.)
+                .build()
+                .map_err(|error| format!("{}", error))?,
+        )
         .fire_countdown_duration(20)
         .bullet_speed(0.050)
         .bullet_duration(120)
-        .boost_max_energy(100.)
-        .boost_cost(3.)
-        .boost_regeneracy(0.25)
-        .boost_multiplier(2.5)
         .build()
         .map_err(|error| format!("{}", error))?;
 
