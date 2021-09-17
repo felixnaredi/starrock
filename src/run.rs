@@ -5,11 +5,6 @@ use std::{
     rc::Rc,
 };
 
-use vecmath::{
-    vec2_add,
-    vec2_mul,
-    vec2_scale,
-};
 use wasm_bindgen::{
     prelude::*,
     JsCast,
@@ -18,10 +13,7 @@ use web_sys::WebGlRenderingContext;
 
 use crate::{
     background::Background,
-    bullet::{
-        Bullet,
-        UpdateBulletEvent,
-    },
+    bullet::UpdateBulletEvent,
     bullet_renderer::BulletRenderer,
     collision::{
         Collision,
@@ -43,6 +35,7 @@ use crate::{
     rock_spawner::SpawnRandomizedRocksAnywhere,
     run_loop::RunLoop,
     ship::Ship,
+    ship_controller::ShipController,
     ship_renderer::ShipRenderer,
 };
 
@@ -103,6 +96,17 @@ pub fn run() -> Result<(), JsValue>
             .map_err(|error| format!("{}", error))?,
     ));
 
+    let mut ship_controller = ShipController::builder()
+        .ship(Rc::downgrade(&ship))
+        .forward_acceleration(0.0025)
+        .backward_acceleration(0.0015)
+        .yaw_acceleration(PI / 77.)
+        .fire_countdown_duration(20)
+        .bullet_speed(0.050)
+        .bullet_duration(120)
+        .build()
+        .map_err(|error| format!("{}", error))?;
+
     let ship_renderer = ShipRenderer::new(&context, &ship.borrow())?;
 
     // ---------------------------------------------------------------------------------------------
@@ -143,8 +147,6 @@ pub fn run() -> Result<(), JsValue>
     // Bullets.
     // ---------------------------------------------------------------------------------------------
     let mut bullets = Vec::new();
-    let mut ship_fire_bullet_countdown = 0;
-
     let bullet_renderer = BulletRenderer::new(&context)?;
 
     // ---------------------------------------------------------------------------------------------
@@ -161,29 +163,13 @@ pub fn run() -> Result<(), JsValue>
     let run_loop = RunLoop::new(move || {
         for key in keyboard_event_bus.keys_held_down() {
             match key {
-                'w' => ship.borrow_mut().accelerate_forward(0.0025),
-                'a' => ship.borrow_mut().accelerate_yaw_rotation(PI / 77.),
-                's' => ship.borrow_mut().accelerate_forward(-0.0015),
-                'd' => ship.borrow_mut().accelerate_yaw_rotation(-PI / 77.),
+                'w' => ship_controller.thrust_forward(),
+                'a' => ship_controller.steer_counter_clockwise(),
+                's' => ship_controller.thrust_backwards(),
+                'd' => ship_controller.steer_clockwise(),
                 ' ' => {
-                    if ship_fire_bullet_countdown == 0 {
-                        let ship = ship.borrow();
-                        let direction = [ship.yaw().cos(), ship.yaw().sin()];
-                        let position =
-                            vec2_add(*ship.position(), vec2_mul(direction, *ship.size()));
-                        let velocity = vec2_scale(direction, 0.040);
-
-                        bullets.push(
-                            Bullet::builder()
-                                .position(position)
-                                .velocity(velocity)
-                                .size([0.0750, 0.0075])
-                                .countdown(180)
-                                .build()
-                                .unwrap(),
-                        );
-
-                        ship_fire_bullet_countdown = 30;
+                    if let Some(bullet) = ship_controller.fire_bullet() {
+                        bullets.push(bullet);
                     }
                 }
                 _ => (),
@@ -321,10 +307,7 @@ pub fn run() -> Result<(), JsValue>
         }
 
         ship.borrow_mut().update();
-
-        if ship_fire_bullet_countdown > 0 {
-            ship_fire_bullet_countdown -= 1;
-        }
+        ship_controller.update();
 
         //
         // Render.

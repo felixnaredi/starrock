@@ -18,7 +18,7 @@ use crate::{
     foreground,
 };
 
-#[derive(Builder, Getters, Setters)]
+#[derive(Builder, Clone, Debug, Getters, Setters)]
 pub struct Ship
 {
     #[getset(get = "pub")]
