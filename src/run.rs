@@ -29,10 +29,9 @@ use crate::{
     matrix::OrthographicProjection,
     rock::{
         Rock,
-        UpdateRockEvent,
+        RockRenderer,
+        SpawnRandomizedRocksAnywhere,
     },
-    rock_renderer::RockRenderer,
-    rock_spawner::SpawnRandomizedRocksAnywhere,
     run_loop::RunLoop,
     ship::{
         Ship,
@@ -318,9 +317,11 @@ pub fn run() -> Result<(), JsValue>
         let mut rocks_hit_by_bullets = Vec::new();
 
         for (i, rock) in rocks.iter_mut().enumerate() {
-            match rock.update() {
-                Some(UpdateRockEvent::HitByBullet) => rocks_hit_by_bullets.push(i),
-                _ => (),
+            for collision in rock.update() {
+                match collision {
+                    Collision::Bullet(_) => rocks_hit_by_bullets.push(i),
+                    _ => (),
+                }
             }
         }
         for i in rocks_hit_by_bullets.into_iter() {

@@ -6,10 +6,7 @@ use std::{
 use rand::Rng;
 use vecmath::vec2_scale;
 
-use crate::rock::{
-    RockDescriptor,
-    RockDescriptorBuilder,
-};
+use crate::rock::RockDescriptor;
 
 #[derive(Builder, Debug)]
 pub struct SpawnRandomizedRocksAnywhere
@@ -41,7 +38,7 @@ impl Iterator for SpawnRandomizedRocksAnywhere
         let velocity = vec2_scale([direction.cos(), direction.sin()], speed);
 
         Some(
-            RockDescriptorBuilder::default()
+            RockDescriptor::builder()
                 .shape(rng.gen())
                 .position([rng.gen_range(0. ..4.), rng.gen_range(0. ..3.)])
                 .size([size, size])

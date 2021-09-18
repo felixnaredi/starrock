@@ -11,6 +11,7 @@ use web_sys::{
     WebGlShader,
 };
 
+use super::shape::RockShape;
 use crate::{
     context::Context,
     gl,
@@ -20,7 +21,6 @@ use crate::{
         Translate,
     },
     rock::Rock,
-    rock_shape::RockShape,
 };
 
 /// Renderer that renders a `Rock` into a canvas.
