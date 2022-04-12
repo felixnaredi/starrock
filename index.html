@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+  <script defer src="index.js"></script></head>
+  <body>
+    <div style="padding: 18px">
+      <div id="container" style="height: 100%; width: 100%">
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+    <script>
+      let canvas = document.getElementById('canvas');
+      let container = document.getElementById('container');
+      canvas.width = container.clientWidth;
+      canvas.height = container.offsetHeight - 36;
+    </script>
+  </body>
+</html>
